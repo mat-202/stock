@@ -1,7 +1,6 @@
 streamlit
-yfinance
-pywavelets
-torch
 pandas
 numpy
 plotly
+yfinance
+scipy

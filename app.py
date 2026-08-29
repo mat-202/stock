@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from datetime import datetime
-from scipy.signal import periodogram
+from scipy.signal import periodogram, find_peaks
 
 try:
     import yfinance as yf
@@ -11,7 +11,7 @@ try:
 except ImportError:
     YFINANCE_AVAILABLE = False
 
-st.set_page_config(page_title="المحرك الفائق للدورات والنجوم والمستهدفات النسبية", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="المكتشف الآلي للدورات الزمنية والنجوم - تاسي والنازداك", page_icon="⚡", layout="wide")
 
 st.markdown("""
 <style>
@@ -33,11 +33,6 @@ NASDAQ_STOCKS = {
     "TSLA": "تيسلا", "NVDA": "أنفيديا", "AAPL": "أبل", "MSFT": "مايكروسوفت",
     "AMZN": "أمازون", "GOOGL": "جوجل", "META": "ميتا", "AMD": "إيه إم دي",
     "NFLX": "نتفليكس", "QCOM": "كوالكوم", "INTC": "إنتل", "COST": "كوستكو"
-}
-
-KNOWN_CYCLES = {
-    "TSLA": {"long": 49, "up": 20, "fib_retrace": 0.618},
-    "META": {"long": 46, "up": 19, "fib_retrace": 0.500},
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -63,6 +58,51 @@ def fetch_stock_data(symbol):
     prices = 50.0 * np.exp(np.cumsum(np.random.normal(0.001, 0.03, size=len(dates))))
     return pd.DataFrame({'Date': dates, 'Close': prices}), clean_sym, comp_name
 
+def detect_stock_custom_cycle(m_prices):
+    """
+    خوارزمية الاكتشاف الآلي لبصمة الدورة الزمنية الكبرى ونسبة الارتداد التاريخية لكل سهم
+    """
+    if len(m_prices) < 36:
+        return 48, 0.618, 20
+        
+    # 1. تحليل طيف الترددات السعرية (Periodogram)
+    returns = np.diff(np.log(m_prices))
+    freqs, spectrum = periodogram(returns)
+    periods = 1 / freqs[1:]
+    spectrum_vals = spectrum[1:]
+    
+    # حصر الدورات الطويلة بين 24 شهراً و 120 شهراً
+    valid_mask = (periods >= 24) & (periods <= 120)
+    valid_periods = periods[valid_mask]
+    valid_spectrum = spectrum_vals[valid_mask]
+    
+    if len(valid_spectrum) > 0:
+        detected_cycle = int(round(valid_periods[np.argmax(valid_spectrum)]))
+    else:
+        detected_cycle = 48
+        
+    # 2. تحديد قيعان الدورة لحساب متوسط نسبة الارتداد التاريخية
+    inverted_prices = -m_prices
+    troughs, _ = find_peaks(inverted_prices, distance=max(12, int(detected_cycle * 0.6)))
+    
+    fib_ratios = []
+    if len(troughs) >= 2:
+        for i in range(len(troughs)-1):
+            seg = m_prices[troughs[i]:troughs[i+1]]
+            if len(seg) > 5:
+                p_high = np.max(seg)
+                p_low = np.min(seg)
+                p_start = seg[0]
+                if (p_high - p_low) > 0:
+                    ratio = (p_high - p_start) / (p_high - p_low)
+                    if 0.2 < ratio < 1.5:
+                        fib_ratios.append(ratio)
+                        
+    avg_fib = float(np.mean(fib_ratios)) if fib_ratios else 0.618
+    up_months = int(round(detected_cycle * 0.43))
+    
+    return detected_cycle, round(avg_fib, 3), up_months
+
 def analyze_full_stock(df, symbol_clean):
     df_res = df.copy()
     df_res['Date'] = pd.to_datetime(df_res['Date'])
@@ -77,12 +117,12 @@ def analyze_full_stock(df, symbol_clean):
     if len(m_prices) < 24:
         return None
         
-    long_c = KNOWN_CYCLES.get(symbol_clean, {}).get("long", 42)
-    fib_ratio = KNOWN_CYCLES.get(symbol_clean, {}).get("fib_retrace", 0.618)
-    
+    # اكتشاف الدورة تلقائياً بدلاً من الأرقام الثابتة
+    long_c, fib_ratio, up_m = detect_stock_custom_cycle(m_prices)
+    down_m = long_c - up_m
     final_w_cycle = int(round(long_c * 4.33))
     
-    # حساب أداء الأشهر والأسابيع المطابقة بالدورة
+    # حساب الأداء الأسبوعي والشهري بالدورة
     m_curr_idx = len(m_prices) - 1
     m_past_idx = max(0, m_curr_idx - long_c)
     m_curr_perf = ((m_prices[m_past_idx] - m_prices[m_past_idx - 1]) / m_prices[m_past_idx - 1]) * 100 if m_past_idx > 0 else 0
@@ -100,12 +140,13 @@ def analyze_full_stock(df, symbol_clean):
     wave_range = wave_high - wave_low
     current_price = m_prices[-1]
     proportional_target = wave_low + (wave_range * fib_ratio)
+    expected_change_pct = ((proportional_target - current_price) / current_price) * 100
 
     return {
         "df_m": df_m,
         "long_cycle": long_c,
-        "up_months": int(long_c * 0.42),
-        "down_months": long_c - int(long_c * 0.42),
+        "up_months": up_m,
+        "down_months": down_m,
         "m_curr_perf": round(m_curr_perf, 2),
         "m_next_perf": round(m_next_perf, 2),
         "w_curr_perf": round(w_curr_perf, 2),
@@ -114,19 +155,20 @@ def analyze_full_stock(df, symbol_clean):
         "wave_high": round(wave_high, 2),
         "wave_low": round(wave_low, 2),
         "fib_ratio": round(fib_ratio * 100, 1),
-        "proportional_target": round(proportional_target, 2)
+        "proportional_target": round(proportional_target, 2),
+        "expected_change_pct": round(expected_change_pct, 2)
     }
 
 # --- الواجهة الرئيسية ---
-st.title("🎯 المحرك الفائق للدورات الزمنية والنجوم والمستهدفات")
+st.title("🎯 المكتشف الآلي للدورات والمستهدفات النسبية")
 
-tab1, tab2 = st.tabs(["🏆 النجوم والمسح الشامل للسوق", "📈 تحليل السهم الرسم والمستهدفات"])
+tab1, tab2 = st.tabs(["🏆 النجوم واكتشاف كافة أسهم السوق", "📈 تحليل السهم والتظليل الزمني"])
 
 with tab1:
     market_choice = st.radio("اختر السوق للبحث والمسح:", ["السوق السعودي الرئيسية (تاسي)", "سوق النازداك الأمريكي (NASDAQ)"], horizontal=True)
     
-    if st.button("🚀 تشغيل المسح الشامل وتحديد النجوم والمستهدفات", type="primary"):
-        with st.spinner("جاري مسح أسهم السوق وحساب الأداء الدوري والمستهدفات النسبية..."):
+    if st.button("🚀 تشغيل المسح وتحديد النجوم والمستهدفات تلقائياً", type="primary"):
+        with st.spinner("جاري فحص واكتشاف الدورة الخاصة بكل سهم وحساب المستهدفات النسبية..."):
             pool = TASI_MAIN_STOCKS if "السعودي" in market_choice else NASDAQ_STOCKS
             results = []
             
@@ -139,9 +181,10 @@ with tab1:
                             "الرمز": c_sym,
                             "الشركة": c_name,
                             "السعر الحالي": res['current_price'],
-                            "الدورة الكبرى (شهراً)": res['long_cycle'],
-                            "نسبة الارتداد": f"{res['fib_ratio']}%",
+                            "الدورة المكتشفة (شهراً)": res['long_cycle'],
+                            "نسبة الارتداد التاريخية": f"{res['fib_ratio']}%",
                             "المستهدف النسبي": res['proportional_target'],
+                            "النمو المتوقع (%)": f"{res['expected_change_pct']}%",
                             "الشهر الحالي": res['m_curr_perf'],
                             "الشهر القادم": res['m_next_perf'],
                             "الأسبوع الحالي": res['w_curr_perf'],
@@ -178,33 +221,48 @@ with tab1:
                 w3.error(f"**أسوأ شهر حالي**\n\n**{worst_m_curr['الشركة']}** ({worst_m_curr['الشهر الحالي']}%)")
                 w4.error(f"**أسوأ شهر قادم**\n\n**{worst_m_next['الشركة']}** ({worst_m_next['الشهر القادم']}%)")
 
-                st.markdown("### 📋 نتائج جميع أسهم السوق بالتفصيل والمستهدفات:")
+                st.markdown("### 📋 نتائج الدورات المكتشفة والمستهدفات النسبية لأسهم السوق:")
                 st.dataframe(rdf, use_container_width=True)
 
 with tab2:
-    input_sym = st.text_input("أدخل رمز أي سهم (مثل 2170 أو 2222 أو TSLA):", value="2170")
+    input_sym = st.text_input("أدخل رمز السهم (مثل 2170 أو 2222 أو TSLA):", value="2170")
     df_raw, clean_sym, comp_name = fetch_stock_data(input_sym)
     
     if not df_raw.empty:
         res = analyze_full_stock(df_raw, clean_sym)
         if res:
             df_m = res['df_m']
-            st.markdown(f"#### 📊 تحليل الدورة والمستهدف النسبي لـ **{comp_name} ({clean_sym})**")
+            st.markdown(f"#### 📊 تحليل الدورة المكتشفة لـ **{comp_name} ({clean_sym})**")
             
             k1, k2, k3, k4 = st.columns(4)
             k1.metric("السعر الحالي", f"{res['current_price']}")
-            k2.metric("طول الدورة الكبرى", f"{res['long_cycle']} شهراً")
+            k2.metric("الدورة الكبرى المكتشفة", f"{res['long_cycle']} شهراً")
             k3.metric("نسبة الارتداد التاريخية", f"{res['fib_ratio']}%")
             k4.metric("المستهدف النسبي القادم", f"{res['proportional_target']}")
 
-            # الرسم البياني الملون مع المستهدف النسبي
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=df_m.index, y=df_m.values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
             
-            # خطوط المستهدف
+            # خطوط المستهدف والموجة
             fig.add_hline(y=res['proportional_target'], line_dash="dash", line_color="#10b981", annotation_text=f"المستهدف النسبي ({res['fib_ratio']}%): {res['proportional_target']}")
             fig.add_hline(y=res['wave_high'], line_dash="dot", line_color="#ef4444", annotation_text=f"قمة الموجة: {res['wave_high']}")
             fig.add_hline(y=res['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {res['wave_low']}")
             
-            fig.update_layout(template="plotly_white", height=500)
+            # تظليل صعود/هبوط الدورة الأخيرة
+            last_date = df_m.index[-1]
+            cycle_start = last_date - pd.DateOffset(months=res['long_cycle'])
+            peak_date = cycle_start + pd.DateOffset(months=res['up_months'])
+
+            fig.add_vrect(
+                x0=cycle_start, x1=peak_date, fillcolor="rgba(34, 197, 94, 0.2)",
+                layer="below", line_width=1, line_color="#22c55e",
+                annotation_text=f"مرحلة صعود ({res['up_months']}M)", annotation_position="top left"
+            )
+            fig.add_vrect(
+                x0=peak_date, x1=last_date, fillcolor="rgba(239, 68, 68, 0.2)",
+                layer="below", line_width=1, line_color="#ef4444",
+                annotation_text=f"مرحلة هبوط ({res['down_months']}M)", annotation_position="top right"
+            )
+
+            fig.update_layout(template="plotly_white", height=520)
             st.plotly_chart(fig, use_container_width=True)

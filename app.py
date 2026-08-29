@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 from scipy.signal import periodogram, find_peaks
 
 try:
@@ -11,7 +11,7 @@ try:
 except ImportError:
     YFINANCE_AVAILABLE = False
 
-st.set_page_config(page_title="منصة الدورات الزمنية المتقدمة", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="المحرك الفائق للدورات الزمنية - تاسي والنازداك", page_icon="⚡", layout="wide")
 
 st.markdown("""
 <style>
@@ -21,26 +21,26 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 1. قائمة شاملة لأسهم السوق السعودي الرئيسي (تاسي)
-ACTIVE_SAUDI_STOCKS = {
+# قائمة شاملة لأهم أسهم تاسي الرئيسية وإمكانية البحث بأي رمز
+TASI_MAIN_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC", 
     "1080.SR": "الإنماء", "1211.SR": "معادن", "4007.SR": "سليمان الحبيب", "2250.SR": "مجموعة تداول",
-    "2380.SR": "بترورابغ", "2060.SR": "تصنيع", "2020.SR": "سافكو / سابك للمغذيات", "4260.SR": "بدل",
-    "4001.SR": "القرعاوي / العثيم", "1810.SR": "سيرا", "4190.SR": "جرير", "4030.SR": "البحري"
+    "2380.SR": "بترورابغ", "2060.SR": "تصنيع", "2020.SR": "سابك للمغذيات", "4260.SR": "بدل",
+    "4001.SR": "العثيم", "1810.SR": "سيرا", "4190.SR": "جرير", "4030.SR": "البحري",
+    "1150.SR": "الإنماء طوكيو", "2350.SR": "الكيان", "1212.SR": "أسترا", "4003.SR": "أسترا أسترال"
 }
 
-# 2. قائمة أهم أسهم النازداك والشركات الكبرى الأمريكية
-ACTIVE_US_STOCKS = {
+# النازداك والشركات الكبرى
+NASDAQ_STOCKS = {
     "TSLA": "تيسلا", "NVDA": "أنفيديا", "AAPL": "أبل", "MSFT": "مايكروسوفت",
     "AMZN": "أمازون", "GOOGL": "جوجل", "META": "ميتا", "AMD": "إيه إم دي",
     "NFLX": "نتفليكس", "QCOM": "كوالكوم", "INTC": "إنتل", "COST": "كوستكو"
 }
 
-# قواميس الدورات الزمنية الدقيقة المثبتة بناءً على الملاحظة الهيكلية
-KNOWN_EXACT_CYCLES = {
-    "TSLA": {"months": 49, "up_months": 20}, # 49 شهراً قاع لقاع، و20 شهراً صعود
-    "META": {"months": 46, "up_months": 19},
+KNOWN_CYCLES = {
+    "TSLA": {"long": 49, "up": 20},
+    "META": {"long": 46, "up": 19},
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -49,7 +49,7 @@ def fetch_stock_data(symbol):
     if clean_sym.isdigit():
         clean_sym = f"{clean_sym}.SR"
         
-    comp_name = ACTIVE_SAUDI_STOCKS.get(clean_sym, ACTIVE_US_STOCKS.get(clean_sym, clean_sym))
+    comp_name = TASI_MAIN_STOCKS.get(clean_sym, NASDAQ_STOCKS.get(clean_sym, f"سهم {clean_sym}"))
     
     if YFINANCE_AVAILABLE:
         try:
@@ -61,42 +61,55 @@ def fetch_stock_data(symbol):
         except Exception:
             pass
             
-    dates = pd.date_range(end=datetime.today(), periods=400, freq='W')
+    dates = pd.date_range(end=datetime.today(), periods=480, freq='W')
     np.random.seed(abs(hash(clean_sym)) % 10000)
     prices = 50.0 * np.exp(np.cumsum(np.random.normal(0.001, 0.03, size=len(dates))))
     return pd.DataFrame({'Date': dates, 'Close': prices}), clean_sym, comp_name
 
-def evaluate_cycle_strength(prices, cycle_months):
+def extract_multi_layer_cycles(df_m_prices, symbol_clean):
     """
-    تقييم قوة الدورة بناءً على تكرار القمم والقيعان عبر عدة دورات متعاقبة
+    استخراج وتصفية الدورات الزمنية:
+    1. الدورة الكبرى (Long-term Cycle) - مشترط ألا تقل عن 18 شهراً لتجنب الضوضاء
+    2. الدورة المتوسطة (Medium-term Cycle)
+    3. الدورة القصيرة (Short-term Cycle)
     """
-    cycle_m = int(cycle_months)
-    total_len = len(prices)
-    
-    # تحتاج على الأقل دورتين كاملتين للتحقق من القوة
-    if total_len < cycle_m * 2:
-        return "دورة متوسطة", 15
-        
-    # تقطيع البيانات إلى دورات سابقة
-    cycle1 = prices[-cycle_m:]
-    cycle2 = prices[-cycle_m*2:-cycle_m]
-    
-    # حساب الارتباط والتوافق الهيكلي بين الدورتين (القمم والقيعان)
-    correlation = np.corrcoef(cycle1, cycle2)[0, 1] if len(cycle1) == len(cycle2) else 0
-    
-    if correlation > 0.6:
-        return "دورة زمنية قوية جداً 🌟🌟", round(correlation * 100, 1)
-    elif correlation > 0.35:
-        return "دورة زمنية قوية 🌟", round(correlation * 100, 1)
+    if symbol_clean in KNOWN_CYCLES:
+        long_c = KNOWN_CYCLES[symbol_clean]["long"]
+        up_c = KNOWN_CYCLES[symbol_clean]["up"]
     else:
-        return "دورة زمنية متوسطة ⚖️", round(max(correlation, 0) * 100, 1)
+        returns = np.diff(np.log(df_m_prices))
+        freqs, spectrum = periodogram(returns)
+        periods = 1 / freqs[1:]
+        spectrum_vals = spectrum[1:]
+        
+        # استبعاد أي دورات أقل من 18 شهراً كدورة رئيسية
+        valid_mask = (periods >= 18) & (periods <= 120)
+        valid_periods = periods[valid_mask]
+        valid_spectrum = spectrum_vals[valid_mask]
+        
+        if len(valid_spectrum) > 0:
+            long_c = int(round(valid_periods[np.argmax(valid_spectrum)]))
+        else:
+            long_c = 42 # افتراضي قوي للدورة الطويلة
+            
+        up_c = int(round(long_c * 0.42))
+        
+    med_c = max(12, int(round(long_c / 2)))
+    short_c = max(6, int(round(long_c / 4)))
+    
+    return {
+        "long_cycle": long_c,
+        "up_months": up_c,
+        "down_months": long_c - up_c,
+        "med_cycle": med_c,
+        "short_cycle": short_c
+    }
 
-def analyze_detailed_cycles(df, symbol_clean, override_months=None):
+def analyze_full_stock(df, symbol_clean):
     df_res = df.copy()
     df_res['Date'] = pd.to_datetime(df_res['Date'])
     df_res.set_index('Date', inplace=True)
     
-    # السلاسل الشهري والأسبوعي
     df_m = df_res['Close'].resample('ME').last().dropna()
     m_prices = df_m.values
     m_dates = df_m.index
@@ -105,93 +118,61 @@ def analyze_detailed_cycles(df, symbol_clean, override_months=None):
     w_prices = df_w.values
     w_dates = df_w.index
     
-    if len(m_prices) < 24 or len(w_prices) < 50:
+    if len(m_prices) < 24:
         return None
-
-    # تحديد طول الدورة والشهر الصاعد
-    if override_months:
-        final_m_cycle = override_months
-        up_months = int(override_months * 0.4) # افتراض 40% من الدورة صعود
-    elif symbol_clean in KNOWN_EXACT_CYCLES:
-        final_m_cycle = KNOWN_EXACT_CYCLES[symbol_clean]["months"]
-        up_months = KNOWN_EXACT_CYCLES[symbol_clean]["up_months"]
-    else:
-        returns = np.diff(np.log(m_prices))
-        freqs, spectrum = periodogram(returns)
-        periods = 1 / freqs[1:]
-        spectrum_vals = spectrum[1:]
         
-        valid_mask = (periods >= 12) & (periods <= 120)
-        valid_periods = periods[valid_mask]
-        valid_spectrum = spectrum_vals[valid_mask]
-        
-        if len(valid_spectrum) > 0:
-            final_m_cycle = int(round(valid_periods[np.argmax(valid_spectrum)]))
-        else:
-            final_m_cycle = 36
-        up_months = int(final_m_cycle * 0.4)
-            
-    # تقييم قوة الدورة
-    strength_label, strength_score = evaluate_cycle_strength(m_prices, final_m_cycle)
+    cycles = extract_multi_layer_cycles(m_prices, symbol_clean)
+    long_c = cycles['long_cycle']
     
-    # التحويل للأسابيع
-    final_w_cycle = int(round(final_m_cycle * 4.33))
+    # حساب الأداء الأسبوعي والشهري بالدورة
+    final_w_cycle = int(round(long_c * 4.33))
     
-    # أداء الأشهر والأسابيع المطابقة
     m_curr_idx = len(m_prices) - 1
-    m_past_idx = max(0, m_curr_idx - final_m_cycle)
-    
+    m_past_idx = max(0, m_curr_idx - long_c)
     m_curr_perf = ((m_prices[m_past_idx] - m_prices[m_past_idx - 1]) / m_prices[m_past_idx - 1]) * 100 if m_past_idx > 0 else 0
     m_next_perf = ((m_prices[m_past_idx + 1] - m_prices[m_past_idx]) / m_prices[m_past_idx]) * 100 if m_past_idx + 1 < len(m_prices) else 0
 
     w_curr_idx = len(w_prices) - 1
     w_past_idx = max(0, w_curr_idx - final_w_cycle)
-    
     w_curr_perf = ((w_prices[w_past_idx] - w_prices[w_past_idx - 1]) / w_prices[w_past_idx - 1]) * 100 if w_past_idx > 0 else 0
     w_next_perf = ((w_prices[w_past_idx + 1] - w_prices[w_past_idx]) / w_prices[w_past_idx]) * 100 if w_past_idx + 1 < len(w_prices) else 0
 
     return {
         "df_m": df_m,
-        "final_m_cycle": final_m_cycle,
-        "up_months": up_months,
-        "strength_label": strength_label,
-        "strength_score": strength_score,
+        "cycles": cycles,
         "m_curr_perf": round(m_curr_perf, 2),
         "m_next_perf": round(m_next_perf, 2),
         "w_curr_perf": round(w_curr_perf, 2),
         "w_next_perf": round(w_next_perf, 2),
-        "m_current_date": m_dates[m_curr_idx],
-        "m_past_date": m_dates[m_past_idx]
     }
 
 # --- الواجهة الرئيسية ---
-st.title("⚡ محرك الدورات الزمنية المطور (تاسي & النازداك)")
+st.title("🎯 المحرك الفائق للدورات الزمنية (المدمجة والتفصيلية)")
 
-tab1, tab2 = st.tabs(["🏆 النجوم والأداء الدوري بالسوق", "🔍 تحليل سهم محدد وقوة الدورة"])
+tab1, tab2 = st.tabs(["🏆 النجوم والمسح الشامل للسوق", "📈 الرسم التفاعلي والدورة الزمنية للسهم"])
 
 with tab1:
-    market = st.radio("اختر السوق للتنطيبق:", ["السوق السعودي (تاسي)", "سوق النازداك (NASDAQ)"], horizontal=True)
-    min_strength = st.selectbox("تصفية حسب قوة الدورة الزمنية:", ["الكل (قوية ومتوسطة)", "الدورات القوية والقوية جداً فقط"])
+    market_choice = st.radio("اختر السوق للبحث والمسح:", ["السوق السعودي الرئيسية (تاسي)", "سوق النازداك الأمريكي (NASDAQ)"], horizontal=True)
     
-    if st.button("🚀 تشغيل المسح وتحديد النجوم والأسوأ", type="primary"):
-        with st.spinner("جاري مسح الأسهم وتقييم تكرار القمم والقيعان بالدورة..."):
-            pool = ACTIVE_SAUDI_STOCKS if "السعودي" in market else ACTIVE_US_STOCKS
+    if st.button("🚀 تشغيل المسح الشامل وتحديد النجوم", type="primary"):
+        with st.spinner("جاري تحليل كافة الأسهم وتصفية الدورات الزمنية الرئيسية والمدمجة..."):
+            pool = TASI_MAIN_STOCKS if "السعودي" in market_choice else NASDAQ_STOCKS
             results = []
             
             for sym, name in pool.items():
                 df_s, c_sym, c_name = fetch_stock_data(sym)
                 if not df_s.empty:
-                    res = analyze_detailed_cycles(df_s, c_sym)
+                    res = analyze_full_stock(df_s, c_sym)
                     if res:
-                        if "القوية" in min_strength and "قوية" not in res['strength_label']:
-                            continue
-                            
+                        c = res['cycles']
                         results.append({
                             "الرمز": c_sym,
                             "الشركة": c_name,
-                            "الدورة (شهراً)": res['final_m_cycle'],
-                            "فترة الصعود (شهراً)": res['up_months'],
-                            "تصنيف الدورة": res['strength_label'],
+                            "الدورة الكبرى (شهراً)": c['long_cycle'],
+                            "فترة الصعود (شهراً)": c['up_months'],
+                            "فترة الهبوط (شهراً)": c['down_months'],
+                            "الدورة المتوسطة": f"{c['med_cycle']} M",
+                            "الدورة القصيرة": f"{c['short_cycle']} M",
                             "الشهر الحالي": res['m_curr_perf'],
                             "الشهر القادم": res['m_next_perf'],
                             "الأسبوع الحالي": res['w_curr_perf'],
@@ -203,70 +184,97 @@ with tab1:
                 
                 star_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=False).iloc[0]
                 worst_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=True).iloc[0]
-                
                 star_m_next = rdf.sort_values(by="الشهر القادم", ascending=False).iloc[0]
                 worst_m_next = rdf.sort_values(by="الشهر القادم", ascending=True).iloc[0]
                 
                 star_w_curr = rdf.sort_values(by="الأسبوع الحالي", ascending=False).iloc[0]
                 worst_w_curr = rdf.sort_values(by="الأسبوع الحالي", ascending=True).iloc[0]
-                
                 star_w_next = rdf.sort_values(by="الأسبوع القادم", ascending=False).iloc[0]
                 worst_w_next = rdf.sort_values(by="الأسبوع القادم", ascending=True).iloc[0]
                 
-                st.markdown("### 🌟 نجوم الأداء الدوري المتوقع (الأقوى تاريخياً)")
+                st.markdown("### 🌟 نجوم الأداء الدوري للسوق")
                 c1, c2, c3, c4 = st.columns(4)
-                with c1:
-                    st.success(f"**نجم الأسبوع الحالي**\n\n**{star_w_curr['الشركة']}** ({star_w_curr['الأسبوع الحالي']}%)")
-                with c2:
-                    st.success(f"**نجم الأسبوع القادم**\n\n**{star_w_next['الشركة']}** ({star_w_next['الأسبوع القادم']}%)")
-                with c3:
-                    st.success(f"**نجم الشهر الحالي**\n\n**{star_m_curr['الشركة']}** ({star_m_curr['الشهر الحالي']}%)")
-                with c4:
-                    st.success(f"**نجم الشهر القادم**\n\n**{star_m_next['الشركة']}** ({star_m_next['الشهر القادم']}%)")
+                c1.success(f"**نجم الأسبوع الحالي**\n\n**{star_w_curr['الشركة']}** ({star_w_curr['الأسبوع الحالي']}%)")
+                c2.success(f"**نجم الأسبوع القادم**\n\n**{star_w_next['الشركة']}** ({star_w_next['الأسبوع القادم']}%)")
+                c3.success(f"**نجم الشهر الحالي**\n\n**{star_m_curr['الشركة']}** ({star_m_curr['الشهر الحالي']}%)")
+                c4.success(f"**نجم الشهر القادم**\n\n**{star_m_next['الشركة']}** ({star_m_next['الشهر القادم']}%)")
                     
-                st.markdown("### ⚠️ أسوأ أداء دوري متوقع (الأكثر ضغطاً/هبوطاً)")
+                st.markdown("### ⚠️ أسوأ أداء دوري للسوق")
                 w1, w2, w3, w4 = st.columns(4)
-                with w1:
-                    st.error(f"**أسوأ أسبوع حالي**\n\n**{worst_w_curr['الشركة']}** ({worst_w_curr['الأسبوع الحالي']}%)")
-                with w2:
-                    st.error(f"**أسوأ أسبوع قادم**\n\n**{worst_w_next['الشركة']}** ({worst_w_next['الأسبوع القادم']}%)")
-                with w3:
-                    st.error(f"**أسوأ شهر حالي**\n\n**{worst_m_curr['الشركة']}** ({worst_m_curr['الشهر الحالي']}%)")
-                with w4:
-                    st.error(f"**أسوأ شهر قادم**\n\n**{worst_m_next['الشركة']}** ({worst_m_next['الشهر القادم']}%)")
+                w1.error(f"**أسوأ أسبوع حالي**\n\n**{worst_w_curr['الشركة']}** ({worst_w_curr['الأسبوع الحالي']}%)")
+                w2.error(f"**أسوأ أسبوع قادم**\n\n**{worst_w_next['الشركة']}** ({worst_w_next['الأسبوع القادم']}%)")
+                w3.error(f"**أسوأ شهر حالي**\n\n**{worst_m_curr['الشركة']}** ({worst_m_curr['الشهر الحالي']}%)")
+                w4.error(f"**أسوأ شهر قادم**\n\n**{worst_m_next['الشركة']}** ({worst_m_next['الشهر القادم']}%)")
 
-                st.markdown("### 📋 جدول الدورات والأداء التفصيلي للأسهم:")
+                st.markdown("### 📋 نتائج الدورات المدمجة لجميع أسهم السوق:")
                 st.dataframe(rdf, use_container_width=True)
 
 with tab2:
-    ticker = st.text_input("أدخل رمز السهم (مثل TSLA أو 2222 أو NVDA):", value="TSLA")
+    st.markdown("### 🔍 التحليل التفاعلي للدورة الزمنية ومراحل الصعود والهبوط")
     
-    df_raw, clean_sym, comp_name = fetch_stock_data(ticker)
+    input_sym = st.text_input("أدخل رمز أي سهم في السوق السعودي (مثال: 2222 أو 1120 أو 2170) أو الأمريكي (TSLA):", value="2170")
     
-    default_c = KNOWN_EXACT_CYCLES.get(clean_sym, {}).get("months", 49 if clean_sym == "TSLA" else 36)
-    m_cycle = st.number_input("تحديد/تعديل طول الدورة (شهراً):", min_value=6, max_value=140, value=default_c)
+    df_raw, clean_sym, comp_name = fetch_stock_data(input_sym)
     
     if not df_raw.empty:
-        res = analyze_detailed_cycles(df_raw, clean_sym, override_months=m_cycle)
-        if res:
-            st.markdown(f"### 📊 تحليل الدورة الزمنية وقوتها لـ **{comp_name} ({clean_sym})**")
+        analysis = analyze_full_stock(df_raw, clean_sym)
+        if analysis:
+            df_m = analysis['df_m']
+            cycles = analysis['cycles']
             
-            st.info(f"🔰 **تقييم الدورة:** {res['strength_label']} — (نسبة الاستقرار والتطابق الدوري: {res['strength_score']}%)")
+            st.markdown(f"#### 📊 السهم المحدد: **{comp_name} ({clean_sym})**")
             
-            c1, c2, c3, c4 = st.columns(4)
-            with c1:
-                st.metric("طول الدورة (قاع لقاع)", f"{res['final_m_cycle']} شهراً")
-            with c2:
-                st.metric("مرحلة الصعود المقدرة", f"~{res['up_months']} شهراً")
-            with c3:
-                st.metric("أداء الشهر الحالي بالدورة", f"{res['m_curr_perf']}%")
-            with c4:
-                st.metric("أداء الشهر القادم بالدورة", f"{res['m_next_perf']}%")
-                
-            df_m = res['df_m']
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("الدورة الكبرى (قاع للقاع)", f"{cycles['long_cycle']} شهراً")
+            k2.metric("مرحلة الصعود 🟢", f"{cycles['up_months']} شهراً")
+            k3.metric("مرحلة الهبوط 🔴", f"{cycles['down_months']} شهراً")
+            k4.metric("الدورات المدمجة (م/ق)", f"{cycles['med_cycle']}M / {cycles['short_cycle']}M")
+
+            # تجهيز الرسم التفاعلي الملون (أخضر للصعود / أحمر للهبوط)
             fig = go.Figure()
-            fig.add_trace(go.Scatter(x=df_m.index, y=df_m.values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
-            fig.add_vline(x=res['m_current_date'], line_color="#ef4444", annotation_text="الحالي")
-            fig.add_vline(x=res['m_past_date'], line_color="#10b981", annotation_text=f"الدورة السابقة ({res['final_m_cycle']}M)")
-            fig.update_layout(template="plotly_white", height=450)
+
+            # رسم السعر الأساسي
+            fig.add_trace(go.Scatter(
+                x=df_m.index, y=df_m.values,
+                mode='lines', name='السعر الشهري',
+                line=dict(color='#64748b', width=2)
+            ))
+
+            # تقسيم وتظليل مناطق الصعود والهبوط على أحدث دورة
+            last_date = df_m.index[-1]
+            up_m = cycles['up_months']
+            down_m = cycles['down_months']
+            total_m = cycles['long_cycle']
+
+            # حساب تواريخ المراحل
+            cycle_start = last_date - pd.DateOffset(months=total_m)
+            peak_date = cycle_start + pd.DateOffset(months=up_m)
+            cycle_end = last_date
+
+            # تظليل الجزء الصاعد بالأخضر
+            fig.add_vrect(
+                x0=cycle_start, x1=peak_date,
+                fillcolor="rgba(34, 197, 94, 0.25)", opacity=0.8,
+                layer="below", line_width=1, line_color="#22c55e",
+                annotation_text=f"مرحلة صعود ({up_m} شهراً)<br>{cycle_start.strftime('%Y-%m')} إلى {peak_date.strftime('%Y-%m')}",
+                annotation_position="top left"
+            )
+
+            # تظليل الجزء النازل بالأحمر
+            fig.add_vrect(
+                x0=peak_date, x1=cycle_end,
+                fillcolor="rgba(239, 68, 68, 0.25)", opacity=0.8,
+                layer="below", line_width=1, line_color="#ef4444",
+                annotation_text=f"مرحلة هبوط ({down_m} شهراً)<br>{peak_date.strftime('%Y-%m')} إلى {cycle_end.strftime('%Y-%m')}",
+                annotation_position="top right"
+            )
+
+            fig.update_layout(
+                title=f"رسم بياني توضيحي لمراحل الدورة الزمنية الكبرى لـ {comp_name}",
+                xaxis_title="التاريخ",
+                yaxis_title="السعر",
+                template="plotly_white",
+                height=520
+            )
+
             st.plotly_chart(fig, use_container_width=True)

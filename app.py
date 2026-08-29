@@ -11,7 +11,7 @@ try:
 except ImportError:
     YFINANCE_AVAILABLE = False
 
-st.set_page_config(page_title="المحرك الفائق للمستهدفات النسبية والدورات", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="المحرك الفائق للدورات والنجوم والمستهدفات النسبية", page_icon="⚡", layout="wide")
 
 st.markdown("""
 <style>
@@ -36,7 +36,7 @@ NASDAQ_STOCKS = {
 }
 
 KNOWN_CYCLES = {
-    "TSLA": {"long": 49, "up": 20, "fib_retrace": 0.618}, # ارتداد 61.8%
+    "TSLA": {"long": 49, "up": 20, "fib_retrace": 0.618},
     "META": {"long": 46, "up": 19, "fib_retrace": 0.500},
 }
 
@@ -63,103 +63,148 @@ def fetch_stock_data(symbol):
     prices = 50.0 * np.exp(np.cumsum(np.random.normal(0.001, 0.03, size=len(dates))))
     return pd.DataFrame({'Date': dates, 'Close': prices}), clean_sym, comp_name
 
-def analyze_wave_target(df_m, symbol_clean):
-    prices = df_m.values
-    if len(prices) < 36:
+def analyze_full_stock(df, symbol_clean):
+    df_res = df.copy()
+    df_res['Date'] = pd.to_datetime(df_res['Date'])
+    df_res.set_index('Date', inplace=True)
+    
+    df_m = df_res['Close'].resample('ME').last().dropna()
+    m_prices = df_m.values
+    
+    df_w = df_res['Close'].resample('W').last().dropna()
+    w_prices = df_w.values
+    
+    if len(m_prices) < 24:
         return None
         
     long_c = KNOWN_CYCLES.get(symbol_clean, {}).get("long", 42)
     fib_ratio = KNOWN_CYCLES.get(symbol_clean, {}).get("fib_retrace", 0.618)
     
-    # تحديد نطاق الموجة الأخيرة
-    recent_segment = prices[-long_c:]
+    final_w_cycle = int(round(long_c * 4.33))
+    
+    # حساب أداء الأشهر والأسابيع المطابقة بالدورة
+    m_curr_idx = len(m_prices) - 1
+    m_past_idx = max(0, m_curr_idx - long_c)
+    m_curr_perf = ((m_prices[m_past_idx] - m_prices[m_past_idx - 1]) / m_prices[m_past_idx - 1]) * 100 if m_past_idx > 0 else 0
+    m_next_perf = ((m_prices[m_past_idx + 1] - m_prices[m_past_idx]) / m_prices[m_past_idx]) * 100 if m_past_idx + 1 < len(m_prices) else 0
+
+    w_curr_idx = len(w_prices) - 1
+    w_past_idx = max(0, w_curr_idx - final_w_cycle)
+    w_curr_perf = ((w_prices[w_past_idx] - w_prices[w_past_idx - 1]) / w_prices[w_past_idx - 1]) * 100 if w_past_idx > 0 else 0
+    w_next_perf = ((w_prices[w_past_idx + 1] - w_prices[w_past_idx]) / w_prices[w_past_idx]) * 100 if w_past_idx + 1 < len(w_prices) else 0
+
+    # المستهدف النسبي
+    recent_segment = m_prices[-long_c:]
     wave_high = np.max(recent_segment)
     wave_low = np.min(recent_segment)
     wave_range = wave_high - wave_low
-    
-    # حساب السعر المستهدف بالنسبة والتناسب (Fibonacci Retracement Ratio)
-    current_price = prices[-1]
+    current_price = m_prices[-1]
     proportional_target = wave_low + (wave_range * fib_ratio)
-    expected_change_pct = ((proportional_target - current_price) / current_price) * 100
 
     return {
+        "df_m": df_m,
         "long_cycle": long_c,
-        "fib_ratio": round(fib_ratio * 100, 1),
+        "up_months": int(long_c * 0.42),
+        "down_months": long_c - int(long_c * 0.42),
+        "m_curr_perf": round(m_curr_perf, 2),
+        "m_next_perf": round(m_next_perf, 2),
+        "w_curr_perf": round(w_curr_perf, 2),
+        "w_next_perf": round(w_next_perf, 2),
+        "current_price": round(current_price, 2),
         "wave_high": round(wave_high, 2),
         "wave_low": round(wave_low, 2),
-        "current_price": round(current_price, 2),
-        "proportional_target": round(proportional_target, 2),
-        "expected_change_pct": round(expected_change_pct, 2)
+        "fib_ratio": round(fib_ratio * 100, 1),
+        "proportional_target": round(proportional_target, 2)
     }
 
-# --- الواجهة ---
-st.title("🎯 المستهدفات السعرية التناسبية للموجات والدورات")
+# --- الواجهة الرئيسية ---
+st.title("🎯 المحرك الفائق للدورات الزمنية والنجوم والمستهدفات")
 
-tab1, tab2 = st.tabs(["🏆 المستهدفات التناسبية لكافة الأسهم", "📈 التحليل الموجي التناسبي للسهم"])
+tab1, tab2 = st.tabs(["🏆 النجوم والمسح الشامل للسوق", "📈 تحليل السهم الرسم والمستهدفات"])
 
 with tab1:
-    market_choice = st.radio("اختر السوق للحساب:", ["السوق السعودي (تاسي)", "سوق النازداك (NASDAQ)"], horizontal=True)
+    market_choice = st.radio("اختر السوق للبحث والمسح:", ["السوق السعودي الرئيسية (تاسي)", "سوق النازداك الأمريكي (NASDAQ)"], horizontal=True)
     
-    if st.button("🚀 حساب المستهدفات التناسبية لجميع الأسهم", type="primary"):
-        with st.spinner("جاري حساب نسب الموجات السابقة وتطبيق المستهدفات بالتطابق النسبي..."):
+    if st.button("🚀 تشغيل المسح الشامل وتحديد النجوم والمستهدفات", type="primary"):
+        with st.spinner("جاري مسح أسهم السوق وحساب الأداء الدوري والمستهدفات النسبية..."):
             pool = TASI_MAIN_STOCKS if "السعودي" in market_choice else NASDAQ_STOCKS
             results = []
             
             for sym, name in pool.items():
                 df_s, c_sym, c_name = fetch_stock_data(sym)
                 if not df_s.empty:
-                    df_res = df_s.copy()
-                    df_res['Date'] = pd.to_datetime(df_res['Date'])
-                    df_res.set_index('Date', inplace=True)
-                    df_m = df_res['Close'].resample('ME').last().dropna()
-                    
-                    target_info = analyze_wave_target(df_m, c_sym)
-                    if target_info:
+                    res = analyze_full_stock(df_s, c_sym)
+                    if res:
                         results.append({
                             "الرمز": c_sym,
                             "الشركة": c_name,
-                            "السعر الحالي": target_info['current_price'],
-                            "قاع الموجة": target_info['wave_low'],
-                            "قمة الموجة": target_info['wave_high'],
-                            "نسبة ارتداد الموجة": f"{target_info['fib_ratio']}%",
-                            "المستهدف النسبي المتوقع": target_info['proportional_target'],
-                            "الارتفاع المتوقع (%)": f"{target_info['expected_change_pct']}%"
+                            "السعر الحالي": res['current_price'],
+                            "الدورة الكبرى (شهراً)": res['long_cycle'],
+                            "نسبة الارتداد": f"{res['fib_ratio']}%",
+                            "المستهدف النسبي": res['proportional_target'],
+                            "الشهر الحالي": res['m_curr_perf'],
+                            "الشهر القادم": res['m_next_perf'],
+                            "الأسبوع الحالي": res['w_curr_perf'],
+                            "الأسبوع القادم": res['w_next_perf']
                         })
             
             if results:
                 rdf = pd.DataFrame(results)
-                st.markdown("### 📋 جدول المستهدفات السعرية المعتمدة على نسبة وتناسب الموجات:")
+                
+                # استخراج النجوم والأسوأ
+                star_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=False).iloc[0]
+                worst_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=True).iloc[0]
+                
+                star_m_next = rdf.sort_values(by="الشهر القادم", ascending=False).iloc[0]
+                worst_m_next = rdf.sort_values(by="الشهر القادم", ascending=True).iloc[0]
+                
+                star_w_curr = rdf.sort_values(by="الأسبوع الحالي", ascending=False).iloc[0]
+                worst_w_curr = rdf.sort_values(by="الأسبوع الحالي", ascending=True).iloc[0]
+                
+                star_w_next = rdf.sort_values(by="الأسبوع القادم", ascending=False).iloc[0]
+                worst_w_next = rdf.sort_values(by="الأسبوع القادم", ascending=True).iloc[0]
+                
+                st.markdown("### 🌟 نجوم الأداء الدوري للسوق")
+                c1, c2, c3, c4 = st.columns(4)
+                c1.success(f"**نجم الأسبوع الحالي**\n\n**{star_w_curr['الشركة']}** ({star_w_curr['الأسبوع الحالي']}%)")
+                c2.success(f"**نجم الأسبوع القادم**\n\n**{star_w_next['الشركة']}** ({star_w_next['الأسبوع القادم']}%)")
+                c3.success(f"**نجم الشهر الحالي**\n\n**{star_m_curr['الشركة']}** ({star_m_curr['الشهر الحالي']}%)")
+                c4.success(f"**نجم الشهر القادم**\n\n**{star_m_next['الشركة']}** ({star_m_next['الشهر القادم']}%)")
+                    
+                st.markdown("### ⚠️ أسوأ أداء دوري للسوق")
+                w1, w2, w3, w4 = st.columns(4)
+                w1.error(f"**أسوأ أسبوع حالي**\n\n**{worst_w_curr['الشركة']}** ({worst_w_curr['الأسبوع الحالي']}%)")
+                w2.error(f"**أسوأ أسبوع قادم**\n\n**{worst_w_next['الشركة']}** ({worst_w_next['الأسبوع القادم']}%)")
+                w3.error(f"**أسوأ شهر حالي**\n\n**{worst_m_curr['الشركة']}** ({worst_m_curr['الشهر الحالي']}%)")
+                w4.error(f"**أسوأ شهر قادم**\n\n**{worst_m_next['الشركة']}** ({worst_m_next['الشهر القادم']}%)")
+
+                st.markdown("### 📋 نتائج جميع أسهم السوق بالتفصيل والمستهدفات:")
                 st.dataframe(rdf, use_container_width=True)
 
 with tab2:
-    input_sym = st.text_input("أدخل رمز السهم (مثل TSLA أو 2170):", value="TSLA")
+    input_sym = st.text_input("أدخل رمز أي سهم (مثل 2170 أو 2222 أو TSLA):", value="2170")
     df_raw, clean_sym, comp_name = fetch_stock_data(input_sym)
     
     if not df_raw.empty:
-        df_res = df_raw.copy()
-        df_res['Date'] = pd.to_datetime(df_res['Date'])
-        df_res.set_index('Date', inplace=True)
-        df_m = df_res['Close'].resample('ME').last().dropna()
-        
-        info = analyze_wave_target(df_m, clean_sym)
-        if info:
-            st.markdown(f"#### 📊 المستهدف التناسبي لـ **{comp_name} ({clean_sym})**")
+        res = analyze_full_stock(df_raw, clean_sym)
+        if res:
+            df_m = res['df_m']
+            st.markdown(f"#### 📊 تحليل الدورة والمستهدف النسبي لـ **{comp_name} ({clean_sym})**")
             
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("السعر الحالي", f"${info['current_price']}" if "SR" not in clean_sym else f"{info['current_price']} ر.س")
-            c2.metric("نسبة ارتداد الدورة السابقة", f"{info['fib_ratio']}%")
-            c3.metric("المستهدف النسبي القادم", f"${info['proportional_target']}" if "SR" not in clean_sym else f"{info['proportional_target']} ر.س")
-            c4.metric("نسبة التغير المتوقعة", f"{info['expected_change_pct']}%")
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("السعر الحالي", f"{res['current_price']}")
+            k2.metric("طول الدورة الكبرى", f"{res['long_cycle']} شهراً")
+            k3.metric("نسبة الارتداد التاريخية", f"{res['fib_ratio']}%")
+            k4.metric("المستهدف النسبي القادم", f"{res['proportional_target']}")
 
-            # الرسم التفاعلي ومستويات الموجة
+            # الرسم البياني الملون مع المستهدف النسبي
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=df_m.index, y=df_m.values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
             
-            # خط المستهدف التناسبي
-            fig.add_hline(y=info['proportional_target'], line_dash="dash", line_color="#10b981", 
-                          annotation_text=f"المستهدف التناسبي ({info['fib_ratio']}%): {info['proportional_target']}")
-            fig.add_hline(y=info['wave_high'], line_dash="dot", line_color="#ef4444", annotation_text=f"قمة الموجة: {info['wave_high']}")
-            fig.add_hline(y=info['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {info['wave_low']}")
+            # خطوط المستهدف
+            fig.add_hline(y=res['proportional_target'], line_dash="dash", line_color="#10b981", annotation_text=f"المستهدف النسبي ({res['fib_ratio']}%): {res['proportional_target']}")
+            fig.add_hline(y=res['wave_high'], line_dash="dot", line_color="#ef4444", annotation_text=f"قمة الموجة: {res['wave_high']}")
+            fig.add_hline(y=res['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {res['wave_low']}")
             
             fig.update_layout(template="plotly_white", height=500)
             st.plotly_chart(fig, use_container_width=True)

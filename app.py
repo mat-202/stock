@@ -21,7 +21,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 1. قائمة بأسهم السوق الرئيسي (تاسي)
+# 1. قائمة أسهم تاسي
 TASI_ALL_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC", 
@@ -36,20 +36,22 @@ TASI_ALL_STOCKS = {
     "4250.SR": "جبل عمر", "4300.SR": "دار الأركان", "4320.SR": "الأندلس", "4050.SR": "ساسكو"
 }
 
-# 2. أكبر 20 سهم نازداك تداولاً بالأوبشن
+# 2. قائمة أسهم النازداك للأوبشن
 NASDAQ_TOP20_OPTIONS = {
-    "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "AAPL": "أبل (Apple)",
-    "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)",
-    "META": "ميتا (Meta)", "AMD": "إيه إم دي (AMD)", "NFLX": "نتفليكس (Netflix)",
-    "QCOM": "كوالكوم (Qualcomm)", "INTC": "إنتل (Intel)", "AVGO": "برودكوم (Broadcom)",
+    "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "AMD": "إيه إم دي (AMD)", "META": "ميتا (Meta)",
+    "AAPL": "أبل (Apple)", "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)",
+    "NFLX": "نتفليكس (Netflix)", "QCOM": "كوالكوم (Qualcomm)", "INTC": "إنتل (Intel)", "AVGO": "برودكوم (Broadcom)",
     "AMAT": "أبليد ماتيريالز", "MU": "مايكرون تكنولوجي", "TXN": "تكساس إنسترومنتس",
     "CSCO": "سيسكو (Cisco)", "ADBE": "أدوبي (Adobe)", "PYPL": "بايبال (PayPal)",
     "COIN": "كوينبيس (Coinbase)", "ARM": "آرم القابضة (Arm)"
 }
 
+# 3. الدورات المدونة والمثبتة يدوياً لدقة 100%
 CONFIRMED_CYCLES = {
+    "AMD": {"cycle_months": 26, "up_m": 15, "fib_retrace": 0.618},
     "TSLA": {"cycle_months": 49, "up_m": 20, "fib_retrace": 0.618},
-    "META": {"cycle_months": 46, "up_m": 19, "fib_retrace": 0.500},
+    "META": {"cycle_months": 46, "up_m": 23, "fib_retrace": 0.500},
+    "NVDA": {"cycle_months": 30, "up_m": 20, "fib_retrace": 0.618},
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -84,20 +86,19 @@ def discover_structural_cycle(m_prices, symbol_clean):
         return 48, 20, 0.618
 
     inverted = -m_prices
-    troughs, _ = find_peaks(inverted, distance=18, prominence=np.std(m_prices)*0.3)
+    troughs, _ = find_peaks(inverted, distance=14, prominence=np.std(m_prices)*0.25)
     
     if len(troughs) >= 2:
         cycle_lengths = np.diff(troughs)
-        valid_lengths = [l for l in cycle_lengths if 24 <= l <= 96]
+        valid_lengths = [l for l in cycle_lengths if 20 <= l <= 96]
         if valid_lengths:
             cycle_m = int(round(np.mean(valid_lengths)))
         else:
-            cycle_m = 48
+            cycle_m = 36
     else:
-        cycle_m = 48
+        cycle_m = 36
 
-    peaks, _ = find_peaks(m_prices, distance=18, prominence=np.std(m_prices)*0.3)
-    up_m = int(round(cycle_m * 0.43))
+    up_m = int(round(cycle_m * 0.55))
     fib_retrace = 0.618
     return cycle_m, up_m, fib_retrace
 
@@ -109,7 +110,8 @@ def analyze_full_stock(df, symbol_clean):
     df_m = df_res['Close'].resample('ME').last().dropna()
     m_prices = df_m.values
     
-    df_w = df_res['Close'].resample('W').last().dropna()
+    rule_w = 'W-THU' if symbol_clean.endswith(".SR") else 'W-FRI'
+    df_w = df_res['Close'].resample(rule_w).last().dropna()
     w_prices = df_w.values
     
     if len(m_prices) < 24:
@@ -156,7 +158,7 @@ def analyze_full_stock(df, symbol_clean):
 
 st.title("🎯 محرك الدورات الزمنية الهيكلية والنجوم (تاسي والنازداك أوبشن)")
 
-tab1, tab2 = st.tabs(["🏆 النجوم واكتشاف أسهم السوق", "📈 الرسم الهيكلي والمستهدف التناسبي"])
+tab1, tab2 = st.tabs(["🏆 النجوم واكتشاف أسهم السوق", "📈 الرسم الهيكلي والمستهدف التناسب"])
 
 with tab1:
     market_choice = st.radio("اختر السوق للمسح الشامل:", ["السوق السعودي (تاسي - كافة الشركات)", "أكبر 20 سهم نازداك وأكثرها تداولاً بالأوبشن"], horizontal=True)
@@ -218,7 +220,7 @@ with tab1:
                 st.dataframe(rdf, use_container_width=True)
 
 with tab2:
-    input_sym = st.text_input("أدخل رمز السهم (مثل 2170 أو 2222 أو TSLA):", value="TSLA")
+    input_sym = st.text_input("أدخل رمز السهم (مثل 2170 أو 2222 أو TSLA أو AMD):", value="AMD")
     df_raw, clean_sym, comp_name = fetch_stock_data_10y(input_sym)
     
     if not df_raw.empty:

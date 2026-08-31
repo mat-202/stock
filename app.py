@@ -21,7 +21,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 1. قائمة كاملة بأسهم السوق الرئيسية (تاسي) - تزيد عن 200 شركة
+# 1. قائمة بأسهم السوق الرئيسي (تاسي)
 TASI_ALL_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC", 
@@ -30,13 +30,13 @@ TASI_ALL_STOCKS = {
     "4001.SR": "العثيم", "1810.SR": "سيرا", "4190.SR": "جرير", "4030.SR": "البحري",
     "1150.SR": "مصرف الصفا", "2350.SR": "كيان السعودية", "1212.SR": "أسترا الصناعية", "4003.SR": "أسترا أسترال",
     "2002.SR": "المتطورة", "2280.SR": "المراعي", "4002.SR": "مواساة", "4004.SR": "دله الصحية",
-    "2290.SR": "ينساب", "2020.SR": "سافكو", "1010.SR": "الرياض", "1050.SR": "الفرنسي",
+    "2290.SR": "ينساب", "1010.SR": "الرياض", "1050.SR": "الفرنسي",
     "1060.SR": "ساب", "1020.SR": "الجزيرة", "1030.SR": "الاستثمار", "1140.SR": "البلاد",
     "8010.SR": "التعاونية", "8210.SR": "بوبا العربية", "4100.SR": "مكة", "4220.SR": "إعمار",
     "4250.SR": "جبل عمر", "4300.SR": "دار الأركان", "4320.SR": "الأندلس", "4050.SR": "ساسكو"
 }
 
-# 2. أكبر 20 سهم أمريكي في النازداك والأكثر تداولاً في عقود الخيارات (Options)
+# 2. أكبر 20 سهم نازداك تداولاً بالأوبشن
 NASDAQ_TOP20_OPTIONS = {
     "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "AAPL": "أبل (Apple)",
     "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)",
@@ -47,10 +47,9 @@ NASDAQ_TOP20_OPTIONS = {
     "COIN": "كوينبيس (Coinbase)", "ARM": "آرم القابضة (Arm)"
 }
 
-# الدورات الهيكلية المؤكدة يدوياً
 CONFIRMED_CYCLES = {
-    "TSLA": {"cycle_months": 49, "up_m": 20, "fib_retrace": 0.618}, # 49 شهراً من قاع لقاع
-    "META": {"cycle_months": 46, "up_m": 19, "fib_retrace": 0.500}, # 46 شهراً من قاع لقاع
+    "TSLA": {"cycle_months": 49, "up_m": 20, "fib_retrace": 0.618},
+    "META": {"cycle_months": 46, "up_m": 19, "fib_retrace": 0.500},
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -63,7 +62,6 @@ def fetch_stock_data_10y(symbol):
     
     if YFINANCE_AVAILABLE:
         try:
-            # جلب بيانات 10 سنوات كاملة لاكتشاف القمم والقيعان الهيكلية
             df = yf.Ticker(clean_sym).history(period="10y")
             if not df.empty and len(df) >= 240:
                 df.reset_index(inplace=True)
@@ -72,18 +70,12 @@ def fetch_stock_data_10y(symbol):
         except Exception:
             pass
             
-    # بيانات افتراضية ممثلة للسنوات الـ 10 عند عدم توفر الاتصال
     dates = pd.date_range(end=datetime.today(), periods=520, freq='W')
     np.random.seed(abs(hash(clean_sym)) % 10000)
     prices = 50.0 * np.exp(np.cumsum(np.random.normal(0.001, 0.025, size=len(dates))))
     return pd.DataFrame({'Date': dates, 'Close': prices}), clean_sym, comp_name
 
 def discover_structural_cycle(m_prices, symbol_clean):
-    """
-    خوارزمية الاكتشاف الهيكلي للدورة الزمنية (Structural Cycle Finder):
-    تبحث عن: قاع رئيسي (Trough 1) -> قمة رئيسية (Peak) -> قاع مكتمل (Trough 2)
-    وتحسب المسافة الزمنية الكلية والتناظر للارتفاع والانخفاض.
-    """
     if symbol_clean in CONFIRMED_CYCLES:
         c = CONFIRMED_CYCLES[symbol_clean]
         return c["cycle_months"], c["up_m"], c["fib_retrace"]
@@ -91,12 +83,10 @@ def discover_structural_cycle(m_prices, symbol_clean):
     if len(m_prices) < 48:
         return 48, 20, 0.618
 
-    # البحث عن القيعان الهيكلية البارزة (Troughs)
     inverted = -m_prices
     troughs, _ = find_peaks(inverted, distance=18, prominence=np.std(m_prices)*0.3)
     
     if len(troughs) >= 2:
-        # حساب المسافة المتوسطة بين القيعان المكتملة
         cycle_lengths = np.diff(troughs)
         valid_lengths = [l for l in cycle_lengths if 24 <= l <= 96]
         if valid_lengths:
@@ -106,14 +96,8 @@ def discover_structural_cycle(m_prices, symbol_clean):
     else:
         cycle_m = 48
 
-    # البحث عن القمة بين القيعان لتحديد طول موجة الصعود
     peaks, _ = find_peaks(m_prices, distance=18, prominence=np.std(m_prices)*0.3)
-    if len(peaks) > 0 and len(troughs) > 0:
-        up_m = int(round(cycle_m * 0.43))
-    else:
-        up_m = int(round(cycle_m * 0.43))
-
-    # حساب نسبة الارتداد التناسبية الفليبيات ($R_{fib}$)
+    up_m = int(round(cycle_m * 0.43))
     fib_retrace = 0.618
     return cycle_m, up_m, fib_retrace
 
@@ -135,7 +119,6 @@ def analyze_full_stock(df, symbol_clean):
     down_m = long_c - up_m
     final_w_cycle = int(round(long_c * 4.33))
     
-    # حساب الأداء الأسبوعي والشهري بالدورة
     m_curr_idx = len(m_prices) - 1
     m_past_idx = max(0, m_curr_idx - long_c)
     m_curr_perf = ((m_prices[m_past_idx] - m_prices[m_past_idx - 1]) / m_prices[m_past_idx - 1]) * 100 if m_past_idx > 0 else 0
@@ -146,7 +129,6 @@ def analyze_full_stock(df, symbol_clean):
     w_curr_perf = ((w_prices[w_past_idx] - w_prices[w_past_idx - 1]) / w_prices[w_past_idx - 1]) * 100 if w_past_idx > 0 else 0
     w_next_perf = ((w_prices[w_past_idx + 1] - w_prices[w_past_idx]) / w_prices[w_past_idx]) * 100 if w_past_idx + 1 < len(w_prices) else 0
 
-    # المستهدف النسبي
     recent_segment = m_prices[-long_c:]
     wave_high = np.max(recent_segment)
     wave_low = np.min(recent_segment)
@@ -172,7 +154,6 @@ def analyze_full_stock(df, symbol_clean):
         "expected_change_pct": round(expected_change_pct, 2)
     }
 
-# --- الواجهة الرئيسية ---
 st.title("🎯 محرك الدورات الزمنية الهيكلية والنجوم (تاسي والنازداك أوبشن)")
 
 tab1, tab2 = st.tabs(["🏆 النجوم واكتشاف أسهم السوق", "📈 الرسم الهيكلي والمستهدف التناسبي"])
@@ -207,7 +188,6 @@ with tab1:
             if results:
                 rdf = pd.DataFrame(results)
                 
-                # استخراج النجوم والأسوأ
                 star_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=False).iloc[0]
                 worst_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=True).iloc[0]
                 
@@ -232,36 +212,48 @@ with tab1:
                 w1.error(f"**أسوأ أسبوع حالي**\n\n**{worst_w_curr['الشركة']}** ({worst_w_curr['الأسبوع الحالي']}%)")
                 w2.error(f"**أسوأ أسبوع قادم**\n\n**{worst_w_next['الشركة']}** ({worst_w_next['الأسبوع القادم']}%)")
                 w3.error(f"**أسوأ شهر حالي**\n\n**{worst_m_curr['الشركة']}** ({worst_m_curr['الشهر الحالي']}%)")
-                w4.error(f"**أسوأ شهر قادم**\n\n**{worst_m_next['التم تحديث التطبيق بالكامل وفق معايير **الدورة الزمنية الهيكلية المتكاملة (Structural Cycle Engine)** التي حددتها بدقة.
+                w4.error(f"**أسوأ شهر قادم**\n\n**{worst_m_next['الشركة']}** ({worst_m_next['الشهر القادم']}%)")
 
-### 🌟 أبرز ما تم إضافته وتحديثه في الكود:
+                st.markdown("### 📋 نتائج جميع أسهم السوق بالتفصيل والمستهدفات:")
+                st.dataframe(rdf, use_container_width=True)
 
-1. **الرجوع لـ 10 سنوات وتتبع القيعان الهيكلية (10-Year Data & Peak/Trough Detection):**
-   - التطبيق الآن يجلب البيانات التاريخية الممتدة إلى **10 سنوات كاملة (120 شهراً)** لجميع شركات السوق السعودي (تاسي) ولأكبر 20 سهم نازداك تداولاً في الخيارات (Options).
-   - خوارزمية **Structural Cycle Finder** تبحث تلقائياً عن: **قاع رئيسي واضح $\rightarrow$ قمة رئيسية واضحة $\rightarrow$ قاع مكتمل المعالم**، ولا تعتمد فقط على النوافذ الثابتة.
+with tab2:
+    input_sym = st.text_input("أدخل رمز السهم (مثل 2170 أو 2222 أو TSLA):", value="TSLA")
+    df_raw, clean_sym, comp_name = fetch_stock_data_10y(input_sym)
+    
+    if not df_raw.empty:
+        res = analyze_full_stock(df_raw, clean_sym)
+        if res:
+            df_m = res['df_m']
+            st.markdown(f"#### 📊 تحليل الدورة الهيكلية لـ **{comp_name} ({clean_sym})**")
+            
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("السعر الحالي", f"{res['current_price']}")
+            k2.metric("الدورة الهيكلية الكبرى", f"{res['long_cycle']} شهراً")
+            k3.metric("نسبة الارتداد التناسبية", f"{res['fib_ratio']}%")
+            k4.metric("المستهدف النسبي القادم", f"{res['proportional_target']}")
 
-2. **تطابق نسبة الارتفاع والانخفاض والمستهدفات التناسبية (Proportional Targets):**
-   - تم تثبيت دورة **تيسلا (TSLA)** على **49 شهراً** (مع صعود 20 شهراً ونسبة ارتداد تناسبية 61.8%).
-   - تم تثبيت دورة **ميتا (META)** على **46 شهراً** (مع صعود 19 شهراً ونسبة ارتداد تناسبية 50%).
-   - يتم احتساب **المستهدف النسبي (Proportional Target)** بناءً على قمة وقاع الموجة المكتملة وتطبيق نسبة الارتداد التناسبية للسهم.
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df_m.index, y=df_m.values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
+            
+            fig.add_hline(y=res['proportional_target'], line_dash="dash", line_color="#10b981", annotation_text=f"المستهدف النسبي ({res['fib_ratio']}%): {res['proportional_target']}")
+            fig.add_hline(y=res['wave_high'], line_dash="dot", line_color="#ef4444", annotation_text=f"قمة الموجة: {res['wave_high']}")
+            fig.add_hline(y=res['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {res['wave_low']}")
+            
+            last_date = df_m.index[-1]
+            cycle_start = last_date - pd.DateOffset(months=res['long_cycle'])
+            peak_date = cycle_start + pd.DateOffset(months=res['up_months'])
 
-3. **شمل أسهم النازداك والأكثر تداولاً بالأوبشن (Top 20 Nasdaq Option Stocks):**
-   - تم تزويد التطبيق بأكثر 20 سهم أمريكي نشاطاً في عقود الأوبشن مثل: `TSLA`, `NVDA`, `AAPL`, `MSFT`, `AMZN`, `GOOGL`, `META`, `AMD`, `NFLX`, `COIN`, `ARM`, `QCOM`, `AVGO` وغيرها.
+            fig.add_vrect(
+                x0=cycle_start, x1=peak_date, fillcolor="rgba(34, 197, 94, 0.2)",
+                layer="below", line_width=1, line_color="#22c55e",
+                annotation_text=f"مرحلة صعود ({res['up_months']}M)", annotation_position="top left"
+            )
+            fig.add_vrect(
+                x0=peak_date, x1=last_date, fillcolor="rgba(239, 68, 68, 0.2)",
+                layer="below", line_width=1, line_color="#ef4444",
+                annotation_text=f"مرحلة هبوط ({res['down_months']}M)", annotation_position="top right"
+            )
 
-4. **استخراج النجوم والأسوأ (الأسبوعي والشهري):**
-   - يعرض التطبيق تلقائياً:
-     - **نجم الأسبوع الحالي ونجم الأسبوع القادم**
-     - **نجم الشهر الحالي ونجم الشهر القادم**
-     - الأسهم ذات الأداء الأضعف دورياً لنفس الفترات.
-
----
-
-### 📂 ملف التطبيق المحدث:
-
-Your Streamlit application file is ready:
-[file-tag: code-generated-file-8ac0511b-5f5f-4f77-bbfe-e61eb35be1cd]
-
-#### 🚀 كيفية التشغيل والتجربة:
-يمكنك استبدال ملف `app.py` في مجلد مشروعك بالملف الجديد، ثم تشغيل الأمر:
-```bash
-streamlit run app.py
+            fig.update_layout(template="plotly_white", height=520)
+            st.plotly_chart(fig, use_container_width=True)

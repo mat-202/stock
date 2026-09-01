@@ -47,13 +47,15 @@ st.markdown("""
         border-radius: 8px;
         padding: 12px;
         margin-top: 10px;
+        color: #ffffff;
     }
     .date-badge {
         background-color: #0284c7;
         color: #ffffff;
-        padding: 2px 6px;
+        padding: 2px 8px;
         border-radius: 4px;
-        font-size: 0.85rem;
+        font-weight: bold;
+        font-size: 0.9rem;
     }
     .metric-title { font-size: 0.9rem; opacity: 0.9; }
     .metric-value { font-size: 1.2rem; font-weight: bold; }
@@ -96,7 +98,7 @@ CONFIRMED_CYCLES = {
         "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2024",
         "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "03 سبتمبر 2024",
         "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "10 سبتمبر 2024",
-        "curr_month_behavior": "اندفاع صاعد قوي واختراق قمة 🟢",
+        "curr_month_behavior": "اندفاع صاعد قوي وااختراق قمة 🟢",
         "next_month_behavior": "استمرار الصعود نحو المستهدف 🟢",
         "curr_week_behavior": "شمعة أسبوعية خضراء ممتدة 🟢",
         "next_week_behavior": "تذبذب عند مستهدفات فيبوناتشي 🟡"
@@ -142,7 +144,7 @@ CONFIRMED_CYCLES = {
         "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "05 سبتمبر 2023",
         "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "12 سبتمبر 2023",
         "curr_month_behavior": "مسار صاعد متماسك 🟢",
-        "next_month_behavior": "تسارع نحو تسجل قمم جديدة 🟢",
+        "next_month_behavior": "تسارع نحو تسجيل قمم جديدة 🟢",
         "curr_week_behavior": "ارتداد من متوسط الحركة 🟢",
         "next_week_behavior": "تداول عرضي تجميعي 🟡"
     }
@@ -319,25 +321,28 @@ if data_list:
                 <p><b>• بداية الدورة:</b> {item['cycle_start']} | <b>نهايتها:</b> {item['cycle_end']}</p>
                 <p><b>• شهر القمة المتوقع:</b> {item['peak_date']}</p>
             </div>
-            
+            """, unsafe_allow_html=True)
+
+            html_hist = f"""
             <div class="hist-comparison">
                 <h4 style="color:#fbbf24; margin-bottom:10px;">🗓️ مطابقة التواريخ وسلوك الشموع في الدورة السابقة:</h4>
                 
                 <p><b>• الأسبوع الحالي ({p['curr_week_date']}):</b><br>
-                يصادف تاريخ <b><span class="date-badge">{p['curr_week_prev_date']}</span></b> في الدورة السابقة 👈 ({p['curr_week_behavior']})</p>
+                يصادف تاريخ <span class="date-badge">{p['curr_week_prev_date']}</span> في الدورة السابقة 👈 ({p['curr_week_behavior']})</p>
                 
                 <p><b>• الأسبوع القادم ({p['next_week_date']}):</b><br>
-                سيصادف تاريخ <b><span class="date-badge">{p['next_week_prev_date']}</span></b> في الدورة السابقة 👈 ({p['next_week_behavior']})</p>
+                سيصادف تاريخ <span class="date-badge">{p['next_week_prev_date']}</span> في الدورة السابقة 👈 ({p['next_week_behavior']})</p>
                 
                 <hr style="border-color:#334155;">
                 
                 <p><b>• الشهر الحالي ({p['curr_month_date']}):</b><br>
-                يصادف شهر <b><span class="date-badge">{p['curr_month_prev_date']}</span></b> في الدورة السابقة 👈 ({p['curr_month_behavior']})</p>
+                يصادف شهر <span class="date-badge">{p['curr_month_prev_date']}</span> في الدورة السابقة 👈 ({p['curr_month_behavior']})</p>
                 
                 <p><b>• الشهر القادم ({p['next_month_date']}):</b><br>
-                سيصادف شهر <b><span class="date-badge">{p['next_month_prev_date']}</span></b> في الدورة السابقة 👈 ({p['next_month_behavior']})</p>
+                سيصادف شهر <span class="date-badge">{p['next_month_prev_date']}</span> في الدورة السابقة 👈 ({p['next_month_behavior']})</p>
             </div>
-            """, unsafe_allow_html=True)
+            """
+            st.markdown(html_hist, unsafe_allow_html=True)
             
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=item['df_m'].index, y=item['df_m'].values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))

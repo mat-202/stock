@@ -104,13 +104,13 @@ def analyze_full_stock(df, symbol_clean):
     if len(m_prices) < 24:
         return None
 
-    last_date = df_m.index[-1]
+    last_date = pd.to_datetime(df_m.index[-1])
 
     if symbol_clean in CONFIRMED_CYCLES:
         c = CONFIRMED_CYCLES[symbol_clean]
-        long_c = c["cycle_months"]
-        up_m = c["up_m"]
-        fib_ratio = c["fib_retrace"]
+        long_c = int(c["cycle_months"])
+        up_m = int(c["up_m"])
+        fib_ratio = float(c["fib_retrace"])
         cycle_start = pd.to_datetime(c["start"])
         cycle_end = pd.to_datetime(c["end"])
         peak_date = pd.to_datetime(c["peak"])
@@ -123,7 +123,7 @@ def analyze_full_stock(df, symbol_clean):
             valid_lengths = [l for l in cycle_lengths if 20 <= l <= 96]
             long_c = int(round(np.mean(valid_lengths))) if valid_lengths else 36
             last_trough_idx = troughs[-1]
-            cycle_start = df_m.index[last_trough_idx]
+            cycle_start = pd.to_datetime(df_m.index[last_trough_idx])
         else:
             long_c = 36
             cycle_start = last_date - pd.DateOffset(months=long_c)

@@ -33,32 +33,9 @@ st.markdown("""
         margin-bottom: 10px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    .detail-card {
-        background-color: #0f172a;
-        color: #f8fafc;
-        padding: 15px;
-        border-radius: 10px;
-        border-right: 4px solid #38bdf8;
-        margin-top: 10px;
-    }
-    .hist-comparison {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 8px;
-        padding: 12px;
-        margin-top: 10px;
-        color: #ffffff;
-    }
-    .date-badge {
-        background-color: #0284c7;
-        color: #ffffff;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-weight: bold;
-        font-size: 0.9rem;
-    }
-    .metric-title { font-size: 0.9rem; opacity: 0.9; }
-    .metric-value { font-size: 1.2rem; font-weight: bold; }
+    .metric-title { font-size: 0.95rem; font-weight: bold; opacity: 0.95; }
+    .metric-value { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
+    .card-divider { border-top: 1px solid rgba(255,255,255,0.2); margin: 10px 0; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -76,7 +53,7 @@ CONFIRMED_CYCLES = {
     "INTC": {
         "cycle_months": 29, "up_m": 14, "fib_retrace": 0.618,
         "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
-        "prev_start": "2023-04-01", "prev_end": "2025-03-31", "prev_peak_date": "2024-05-15 (الشهر 14)",
+        "prev_start": "2023-04-01", "prev_end": "2025-03-31", "prev_peak_date": "2024-05-15",
         "monthly_close": "حمراء ابتلاعية 🔴", "weekly_close": "إغلاق سلبي أسبوعي 🔴",
         "m_perf": 8.4, "w_perf": 2.1,
         "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2024",
@@ -98,7 +75,7 @@ CONFIRMED_CYCLES = {
         "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2024",
         "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "03 سبتمبر 2024",
         "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "10 سبتمبر 2024",
-        "curr_month_behavior": "اندفاع صاعد قوي وااختراق قمة 🟢",
+        "curr_month_behavior": "اندفاع صاعد قوي واختراق قمة 🟢",
         "next_month_behavior": "استمرار الصعود نحو المستهدف 🟢",
         "curr_week_behavior": "شمعة أسبوعية خضراء ممتدة 🟢",
         "next_week_behavior": "تذبذب عند مستهدفات فيبوناتشي 🟡"
@@ -285,14 +262,22 @@ if data_list:
 
     st.markdown("### 👑 عرش النجوم والأداء الدوري")
     
+    sp = star_m["prev_info"]
+    wp = worst_m["prev_info"]
+
     col_star, col_worst = st.columns(2)
     with col_star:
         st.markdown(f"""
         <div class="star-card-top">
             <div class="metric-title">🌟 نجم السوق (الأعلى أداءً)</div>
             <div class="metric-value">{star_m['name']} ({star_m['sym']})</div>
-            <div style="margin-top:5px;">• الأداء الشهري: <b>+{star_m['m_perf']}%</b></div>
-            <div>• الأداء الأسبوعي: <b>+{star_m['w_perf']}%</b></div>
+            <div style="margin-top:6px;">• الأداء الشهري: <b>+{star_m['m_perf']}%</b> | الأسبوعي: <b>+{star_m['w_perf']}%</b></div>
+            <div class="card-divider"></div>
+            <div style="font-size:0.88rem; line-height:1.6;">
+                📅 <b>التاريخ المطابق في الدورة السابقة:</b><br>
+                • <b>الأسبوع الحالي ({sp['curr_week_date']}):</b> يطابق <u>{sp['curr_week_prev_date']}</u> ({sp['curr_week_behavior']})<br>
+                • <b>الشهر الحالي ({sp['curr_month_date']}):</b> يطابق <u>{sp['curr_month_prev_date']}</u> ({sp['curr_month_behavior']})
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
@@ -301,8 +286,13 @@ if data_list:
         <div class="worst-card-top">
             <div class="metric-title">⚠️ الأقل أداءً في السوق</div>
             <div class="metric-value">{worst_m['name']} ({worst_m['sym']})</div>
-            <div style="margin-top:5px;">• الأداء الشهري: <b>{worst_m['m_perf']}%</b></div>
-            <div>• الأداء الأسبوعي: <b>{worst_m['w_perf']}%</b></div>
+            <div style="margin-top:6px;">• الأداء الشهري: <b>{worst_m['m_perf']}%</b> | الأسبوعي: <b>{worst_m['w_perf']}%</b></div>
+            <div class="card-divider"></div>
+            <div style="font-size:0.88rem; line-height:1.6;">
+                📅 <b>التاريخ المطابق في الدورة السابقة:</b><br>
+                • <b>الأسبوع الحالي ({wp['curr_week_date']}):</b> يطابق <u>{wp['curr_week_prev_date']}</u> ({wp['curr_week_behavior']})<br>
+                • <b>الشهر الحالي ({wp['curr_month_date']}):</b> يطابق <u>{wp['curr_month_prev_date']}</u> ({wp['curr_month_behavior']})
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -315,35 +305,21 @@ if data_list:
         
         with st.expander(header_text):
             st.markdown(f"""
-            <div class="detail-card">
-                <h4 style="color:#38bdf8; margin-bottom:10px;">🔄 تفاصيل الدورة الحالية ({item['long_cycle']} شهراً):</h4>
-                <p><b>• السعر الحالي:</b> {item['current_price']} | <b>المستهدف النسبي:</b> {item['proportional_target']}</p>
-                <p><b>• بداية الدورة:</b> {item['cycle_start']} | <b>نهايتها:</b> {item['cycle_end']}</p>
-                <p><b>• شهر القمة المتوقع:</b> {item['peak_date']}</p>
-            </div>
-            """, unsafe_allow_html=True)
+            **🔄 تفاصيل الدورة الحالية ({item['long_cycle']} شهراً):**
+            - **السعر الحالي:** {item['current_price']} | **المستهدف النسبي:** {item['proportional_target']}
+            - **بداية الدورة:** {item['cycle_start']} | **نهايتها:** {item['cycle_end']}
+            - **شهر القمة المتوقع:** {item['peak_date']}
+            """)
 
-            html_hist = f"""
-            <div class="hist-comparison">
-                <h4 style="color:#fbbf24; margin-bottom:10px;">🗓️ مطابقة التواريخ وسلوك الشموع في الدورة السابقة:</h4>
-                
-                <p><b>• الأسبوع الحالي ({p['curr_week_date']}):</b><br>
-                يصادف تاريخ <span class="date-badge">{p['curr_week_prev_date']}</span> في الدورة السابقة 👈 ({p['curr_week_behavior']})</p>
-                
-                <p><b>• الأسبوع القادم ({p['next_week_date']}):</b><br>
-                سيصادف تاريخ <span class="date-badge">{p['next_week_prev_date']}</span> في الدورة السابقة 👈 ({p['next_week_behavior']})</p>
-                
-                <hr style="border-color:#334155;">
-                
-                <p><b>• الشهر الحالي ({p['curr_month_date']}):</b><br>
-                يصادف شهر <span class="date-badge">{p['curr_month_prev_date']}</span> في الدورة السابقة 👈 ({p['curr_month_behavior']})</p>
-                
-                <p><b>• الشهر القادم ({p['next_month_date']}):</b><br>
-                سيصادف شهر <span class="date-badge">{p['next_month_prev_date']}</span> في الدورة السابقة 👈 ({p['next_month_behavior']})</p>
-            </div>
-            """
-            st.markdown(html_hist, unsafe_allow_html=True)
+            st.markdown("---")
+            st.markdown("#### 🗓️ مطابقة التواريخ وسلوك الشموع في الدورة السابقة:")
             
+            st.markdown(f"- **الأسبوع الحالي ({p['curr_week_date']}):** يصادف تاريخ **{p['curr_week_prev_date']}** في الدورة السابقة 👈 ({p['curr_week_behavior']})")
+            st.markdown(f"- **الأسبوع القادم ({p['next_week_date']}):** سيصادف تاريخ **{p['next_week_prev_date']}** في الدورة السابقة 👈 ({p['next_week_behavior']})")
+            
+            st.markdown(f"- **الشهر الحالي ({p['curr_month_date']}):** يصادف شهر **{p['curr_month_prev_date']}** في الدورة السابقة 👈 ({p['curr_month_behavior']})")
+            st.markdown(f"- **الشهر القادم ({p['next_month_date']}):** سيصادف شهر **{p['next_month_prev_date']}** في الدورة السابقة 👈 ({p['next_month_behavior']})")
+
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=item['df_m'].index, y=item['df_m'].values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
             fig.add_hline(y=item['proportional_target'], line_dash="dash", line_color="#10b981", annotation_text=f"المستهدف: {item['proportional_target']}")

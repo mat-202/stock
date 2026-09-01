@@ -41,6 +41,13 @@ st.markdown("""
         border-right: 4px solid #38bdf8;
         margin-top: 10px;
     }
+    .hist-comparison {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 10px;
+    }
     .metric-title { font-size: 0.9rem; opacity: 0.9; }
     .metric-value { font-size: 1.2rem; font-weight: bold; }
 </style>
@@ -62,35 +69,55 @@ CONFIRMED_CYCLES = {
         "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
         "prev_start": "2023-04", "prev_end": "2025-03", "prev_peak_month": "2024-05 (الشهر 14)",
         "monthly_close": "حمراء ابتلاعية عاكسة للاتجاه 🔴", "weekly_close": "إغلاق سلبي أسبوعي أسفل المتوسطات 🔴",
-        "m_perf": 8.4, "w_perf": 2.1
+        "m_perf": 8.4, "w_perf": 2.1,
+        "curr_month_vs_prev": "يصادف الشهر 17 من الدورة السابقة (شمعة تصحيحية هابطة 🔴)",
+        "next_month_vs_prev": "يصادف الشهر 18 من الدورة السابقة (شمعة ارتوازية وتجميع قاع 🟡)",
+        "curr_week_vs_prev": "يصادف الأسبوع 68 (كسر دائم لمستوى دعم أسبوعي 🔴)",
+        "next_week_vs_prev": "يصادف الأسبوع 69 (محاولة ارتداد وهمي لمستوى المقاومة 🟡)"
     },
     "AMD": {
         "cycle_months": 26, "up_m": 15, "fib_retrace": 0.618,
         "start": "2025-04-01", "end": "2027-06-01", "peak": "2026-06-01",
         "prev_start": "2023-01", "prev_end": "2025-02", "prev_peak_month": "2024-03",
         "monthly_close": "خضراء ابتلاعية 🟢", "weekly_close": "إيجابي أعلى 50 EMA 🟢",
-        "m_perf": 14.2, "w_perf": 5.3
+        "m_perf": 14.2, "w_perf": 5.3,
+        "curr_month_vs_prev": "يصادف الشهر 17 (اندفاع صاعد قوي واختراق القمة 🟢)",
+        "next_month_vs_prev": "يصادف الشهر 18 (استمرار الصعود نحو قمة الموجة 🟢)",
+        "curr_week_vs_prev": "يصادف الأسبوع 68 (شمعة أسبوعية خضراء ممتدة 🟢)",
+        "next_week_vs_prev": "يصادف الأسبوع 69 (تذبذب عند مستهدفات فيبوناتشي 🟡)"
     },
     "TSLA": {
         "cycle_months": 48, "up_m": 20, "fib_retrace": 0.618,
         "start": "2024-04-01", "end": "2028-04-01", "peak": "2025-11-01",
         "prev_start": "2020-03", "prev_end": "2024-02", "prev_peak_month": "2021-11",
         "monthly_close": "قمة ذيل علوي 🔴", "weekly_close": "تذبذب عالي مائل للهبوط 🔴",
-        "m_perf": -6.1, "w_perf": -1.8
+        "m_perf": -6.1, "w_perf": -1.8,
+        "curr_month_vs_prev": "يصادف الشهر 29 (موجة تصحيح وجني أرباح حاد 🔴)",
+        "next_month_vs_prev": "يصادف الشهر 30 (شمعة حيرة وتوازن مؤقت 🟡)",
+        "curr_week_vs_prev": "يصادف الأسبوع 116 (ضغط بيعي أسبوعي 🔴)",
+        "next_week_vs_prev": "يصادف الأسبوع 117 (اختبار قاع الأسبوع السابق 🔴)"
     },
     "META": {
         "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
         "start": "2022-11-01", "end": "2026-09-01", "peak": "2024-09-01",
         "prev_start": "2018-12", "prev_end": "2022-10", "prev_peak_month": "2021-09",
         "monthly_close": "خضراء قوية 🟢", "weekly_close": "إغلاق أسبوعي متصاعد 🟢",
-        "m_perf": 11.8, "w_perf": 3.9
+        "m_perf": 11.8, "w_perf": 3.9,
+        "curr_month_vs_prev": "يصادف الشهر 45 (نهاية قمة صاعدة وبداية انعطاف 🟡)",
+        "next_month_vs_prev": "يصادف الشهر 46 (شهر إغلاق الدورة وبداية القاع 🔴)",
+        "curr_week_vs_prev": "يصادف الأسبوع 180 (إغلاق أسبوعي متذبذب قاطِع للمتوسط 🟡)",
+        "next_week_vs_prev": "يصادف الأسبوع 181 (ضعف في أحجام التداول 🔴)"
     },
     "NVDA": {
         "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
         "start": "2025-05-01", "end": "2027-11-01", "peak": "2026-12-01",
         "prev_start": "2022-10", "prev_end": "2025-04", "prev_peak_month": "2024-06",
         "monthly_close": "دوجي انعكاسية 🟡", "weekly_close": "كسر متوسط 20 أسبوع 🔴",
-        "m_perf": -2.4, "w_perf": 0.8
+        "m_perf": -2.4, "w_perf": 0.8,
+        "curr_month_vs_prev": "يصادف الشهر 16 (مسار صاعد متماسك مع جني أرباح 🟢)",
+        "next_month_vs_prev": "يصادف الشهر 17 (تسارع نحو تسجيل قمم جديدة 🟢)",
+        "curr_week_vs_prev": "يصادف الأسبوع 64 (ارتداد من متوسط الحركة 🟢)",
+        "next_week_vs_prev": "يصادف الأسبوع 65 (تداول عرضي تجميعي 🟡)"
     }
 }
 
@@ -143,7 +170,11 @@ def analyze_full_stock(df, symbol_clean):
             "p_end": c.get("prev_end", "غير محدد"),
             "p_peak": c.get("prev_peak_month", "غير محدد"),
             "m_close": c.get("monthly_close", "غير متوفر"),
-            "w_close": c.get("weekly_close", "غير متوفر")
+            "w_close": c.get("weekly_close", "غير متوفر"),
+            "curr_month_vs_prev": c.get("curr_month_vs_prev", "غير مسجل"),
+            "next_month_vs_prev": c.get("next_month_vs_prev", "غير مسجل"),
+            "curr_week_vs_prev": c.get("curr_week_vs_prev", "غير مسجل"),
+            "next_week_vs_prev": c.get("next_week_vs_prev", "غير مسجل")
         }
     else:
         long_c = 36
@@ -159,7 +190,11 @@ def analyze_full_stock(df, symbol_clean):
             "p_end": cycle_start.strftime("%Y-%m"),
             "p_peak": (cycle_start + pd.DateOffset(months=up_m)).strftime("%Y-%m"),
             "m_close": "موجة هابطة 🔴",
-            "w_close": "تذبذب 🟡"
+            "w_close": "تذبذب 🟡",
+            "curr_month_vs_prev": "يصادف مسار تجميعي متماثل 🟡",
+            "next_month_vs_prev": "اختبار قمة الدورة السابقة 🟢",
+            "curr_week_vs_prev": "تذبذب عرضي 🟡",
+            "next_week_vs_prev": "اختراق محتمل 🟢"
         }
 
     down_m = long_c - up_m
@@ -187,7 +222,7 @@ def analyze_full_stock(df, symbol_clean):
         "prev_info": prev_info
     }
 
-st.title("🌟 منصة النجوم وترتيب الشركات الدوري")
+st.title("🌟 منصة النجوم وتطابق الشموع مع الدورة السابقة")
 
 market_choice = st.radio("اختر السوق للتحليل:", ["أمريكي (نازداك / أوبشن)", "سعودي (تاسي)"], horizontal=True)
 pool = NASDAQ_TOP20_OPTIONS if "أمريكي" in market_choice else TASI_ALL_STOCKS
@@ -231,7 +266,7 @@ if data_list:
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### 📊 ترتيب الشركات التفصيلي (اضغط للتفاصيل الكاملة)")
+    st.markdown("### 📊 الترتيب ومقارنة الأسابيع والشهور بالدورة السابقة")
 
     for rank, item in enumerate(sorted_m, 1):
         p = item["prev_info"]
@@ -245,11 +280,22 @@ if data_list:
                 <p><b>• بداية الدورة:</b> {item['cycle_start']} | <b>نهايتها:</b> {item['cycle_end']}</p>
                 <p><b>• شهر القمة المتوقع:</b> {item['peak_date']}</p>
                 <hr style="border-color:#334155;">
-                <h4 style="color:#fbbf24; margin-bottom:10px;">📜 تفاصيل الدورة السابقة (تاريخي):</h4>
+                
+                <h4 style="color:#fbbf24; margin-bottom:10px;">📜 تفاصيل القمة في الدورة السابقة:</h4>
                 <p><b>• بدأت في:</b> {p['p_start']} | <b>انتهت في:</b> {p['p_end']}</p>
                 <p><b>• القمة كانت في:</b> {p['p_peak']}</p>
-                <p><b>• الشمعة الشهرية عند القمة:</b> {p['m_close']}</p>
-                <p><b>• الشمعة الأسبوعية عند القمة:</b> {p['w_close']}</p>
+                <p><b>• إغلاق شمعة القمة الشهرية:</b> {p['m_close']}</p>
+                <p><b>• إغلاق شمعة القمة الأسبوعية:</b> {p['w_close']}</p>
+            </div>
+            
+            <div class="hist-comparison">
+                <h4 style="color:#a7f3d0; margin-bottom:8px;">⏳ ماذا يصادف التوقيت الحالي من الدورة السابقة؟</h4>
+                <p><b>• الأسبوع الحالي يصادف:</b> {p['curr_week_vs_prev']}</p>
+                <p><b>• الشهر الحالي يصادف:</b> {p['curr_month_vs_prev']}</p>
+                <hr style="border-color:#334155;">
+                <h4 style="color:#fde68a; margin-bottom:8px;">🔮 التوقع للفترات القادمة (مقارنة بالدورة السابقة):</h4>
+                <p><b>• الأسبوع القادم سيصادف:</b> {p['next_week_vs_prev']}</p>
+                <p><b>• الشهر القادم سيصادف:</b> {p['next_month_vs_prev']}</p>
             </div>
             """, unsafe_allow_html=True)
             

@@ -50,19 +50,19 @@ NASDAQ_TOP20_OPTIONS = {
 CONFIRMED_CYCLES = {
     "AMD": {
         "cycle_months": 26, "up_m": 15, "fib_retrace": 0.618,
-        "start": "2025-04", "end": "2027-06", "peak": "2026-06"
+        "start": "2025-04-01", "end": "2027-06-01", "peak": "2026-06-01"
     },
     "TSLA": {
         "cycle_months": 48, "up_m": 20, "fib_retrace": 0.618,
-        "start": "2024-04", "end": "2028-04", "peak": "2025-11"
+        "start": "2024-04-01", "end": "2028-04-01", "peak": "2025-11-01"
     },
     "META": {
         "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
-        "start": "2022-11", "end": "2026-09", "peak": "2024-09"
+        "start": "2022-11-01", "end": "2026-09-01", "peak": "2024-09-01"
     },
     "NVDA": {
         "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
-        "start": "2025-05", "end": "2027-11", "peak": "2026-12"
+        "start": "2025-05-01", "end": "2027-11-01", "peak": "2026-12-01"
     },
 }
 
@@ -91,7 +91,7 @@ def fetch_stock_data_10y(symbol):
 
 def analyze_full_stock(df, symbol_clean):
     df_res = df.copy()
-    df_res['Date'] = pd.to_datetime(df_res['Date'])
+    df_res['Date'] = pd.to_datetime(df_res['Date']).dt.tz_localize(None)
     df_res.set_index('Date', inplace=True)
     
     df_m = df_res['Close'].resample('ME').last().dropna()
@@ -104,16 +104,16 @@ def analyze_full_stock(df, symbol_clean):
     if len(m_prices) < 24:
         return None
 
-    last_date = pd.to_datetime(df_m.index[-1])
+    last_date = pd.Timestamp(df_m.index[-1]).tz_localize(None)
 
     if symbol_clean in CONFIRMED_CYCLES:
         c = CONFIRMED_CYCLES[symbol_clean]
         long_c = int(c["cycle_months"])
         up_m = int(c["up_m"])
         fib_ratio = float(c["fib_retrace"])
-        cycle_start = pd.to_datetime(c["start"])
-        cycle_end = pd.to_datetime(c["end"])
-        peak_date = pd.to_datetime(c["peak"])
+        cycle_start = pd.Timestamp(c["start"]).tz_localize(None)
+        cycle_end = pd.Timestamp(c["end"]).tz_localize(None)
+        peak_date = pd.Timestamp(c["peak"]).tz_localize(None)
     else:
         inverted = -m_prices
         troughs, _ = find_peaks(inverted, distance=14, prominence=np.std(m_prices)*0.25)
@@ -123,7 +123,7 @@ def analyze_full_stock(df, symbol_clean):
             valid_lengths = [l for l in cycle_lengths if 20 <= l <= 96]
             long_c = int(round(np.mean(valid_lengths))) if valid_lengths else 36
             last_trough_idx = troughs[-1]
-            cycle_start = pd.to_datetime(df_m.index[last_trough_idx])
+            cycle_start = pd.Timestamp(df_m.index[last_trough_idx]).tz_localize(None)
         else:
             long_c = 36
             cycle_start = last_date - pd.DateOffset(months=long_c)
@@ -250,7 +250,7 @@ with tab1:
                 st.dataframe(rdf, use_container_width=True)
 
 with tab2:
-    input_sym = st.text_input("أدخل رمز السهم (مثل 2170 أو 2222 أو TSLA أو AMD):", value="AMD")
+    input_sym = st.text_input("أدخل رمز السهم (مثل 2170 أو 2222 أو TSLA أو AMD):", value="2170")
     df_raw, clean_sym, comp_name = fetch_stock_data_10y(input_sym)
     
     if not df_raw.empty:
@@ -272,9 +272,9 @@ with tab2:
             fig.add_hline(y=res['wave_high'], line_dash="dot", line_color="#ef4444", annotation_text=f"قمة الموجة: {res['wave_high']}")
             fig.add_hline(y=res['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {res['wave_low']}")
             
-            cycle_start = pd.to_datetime(res['cycle_start'])
-            peak_date = pd.to_datetime(res['peak_date'])
-            cycle_end = pd.to_datetime(res['cycle_end'])
+            cycle_start = pd.Timestamp(res['cycle_start']).tz_localize(None)
+            peak_date = pd.Timestamp(res['peak_date']).tz_localize(None)
+            cycle_end = pd.Timestamp(res['cycle_end']).tz_localize(None)
 
             fig.add_vrect(
                 x0=cycle_start, x1=peak_date, fillcolor="rgba(34, 197, 94, 0.2)",

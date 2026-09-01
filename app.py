@@ -46,7 +46,7 @@ NASDAQ_TOP20_OPTIONS = {
     "COIN": "كوينبيس (Coinbase)", "ARM": "آرم القابضة (Arm)"
 }
 
-# 3. الدورات المدونة والمثبتة يدوياً لدقة 100%
+# 3. الدورات المكتشفة والمثبتة يدوياً
 CONFIRMED_CYCLES = {
     "AMD": {"cycle_months": 26, "up_m": 15, "fib_retrace": 0.618},
     "TSLA": {"cycle_months": 49, "up_m": 20, "fib_retrace": 0.618},
@@ -121,6 +121,22 @@ def analyze_full_stock(df, symbol_clean):
     down_m = long_c - up_m
     final_w_cycle = int(round(long_c * 4.33))
     
+    # حساب تواريخ الدورة والمتبقي
+    last_date = df_m.index[-1]
+    cycle_start = last_date - pd.DateOffset(months=long_c)
+    peak_date = cycle_start + pd.DateOffset(months=up_m)
+    cycle_end = cycle_start + pd.DateOffset(months=long_c)
+
+    # حساب المتبقي على انتهاء الصعود أو الهبوط
+    if last_date <= peak_date:
+        phase_type = "صعود 🟢"
+        remaining_months = (peak_date.year - last_date.year) * 12 + (peak_date.month - last_date.month)
+        target_date_str = peak_date.strftime("%Y-%m")
+    else:
+        phase_type = "هبوط 🔴"
+        remaining_months = (cycle_end.year - last_date.year) * 12 + (cycle_end.month - last_date.month)
+        target_date_str = cycle_end.strftime("%Y-%m")
+
     m_curr_idx = len(m_prices) - 1
     m_past_idx = max(0, m_curr_idx - long_c)
     m_curr_perf = ((m_prices[m_past_idx] - m_prices[m_past_idx - 1]) / m_prices[m_past_idx - 1]) * 100 if m_past_idx > 0 else 0
@@ -144,6 +160,12 @@ def analyze_full_stock(df, symbol_clean):
         "long_cycle": long_c,
         "up_months": up_m,
         "down_months": down_m,
+        "cycle_start": cycle_start.strftime("%Y-%m"),
+        "cycle_end": cycle_end.strftime("%Y-%m"),
+        "peak_date": peak_date.strftime("%Y-%m"),
+        "phase_type": phase_type,
+        "remaining_months": max(0, remaining_months),
+        "target_date_str": target_date_str,
         "m_curr_perf": round(m_curr_perf, 2),
         "m_next_perf": round(m_next_perf, 2),
         "w_curr_perf": round(w_curr_perf, 2),
@@ -158,13 +180,13 @@ def analyze_full_stock(df, symbol_clean):
 
 st.title("🎯 محرك الدورات الزمنية الهيكلية والنجوم (تاسي والنازداك أوبشن)")
 
-tab1, tab2 = st.tabs(["🏆 النجوم واكتشاف أسهم السوق", "📈 الرسم الهيكلي والمستهدف التناسب"])
+tab1, tab2 = st.tabs(["🏆 النجوم واكتشاف أسهم السوق", "📈 الرسم الهيكلي والمستهدف التناسبي"])
 
 with tab1:
     market_choice = st.radio("اختر السوق للمسح الشامل:", ["السوق السعودي (تاسي - كافة الشركات)", "أكبر 20 سهم نازداك وأكثرها تداولاً بالأوبشن"], horizontal=True)
     
     if st.button("🚀 تشغيل المسح وتحديد النجوم والمستهدفات الهيكلية", type="primary"):
-        with st.spinner("جاري تحليل البيانات التاريخية لـ 10 سنوات واكتشاف الدورات الهيكلية المكتملة..."):
+        with st.spinner("جاري تحليل البيانات التاريخية وتوقيتات بداية ونهاية الدورات..."):
             pool = TASI_ALL_STOCKS if "السعودي" in market_choice else NASDAQ_TOP20_OPTIONS
             results = []
             
@@ -177,10 +199,12 @@ with tab1:
                             "الرمز": c_sym,
                             "الشركة": c_name,
                             "السعر الحالي": res['current_price'],
-                            "الدورة الهيكلية (شهراً)": res['long_cycle'],
-                            "نسبة الارتداد": f"{res['fib_ratio']}%",
+                            "الدورة (شهراً)": res['long_cycle'],
+                            "بداية الدورة": res['cycle_start'],
+                            "نهاية الدورة": res['cycle_end'],
+                            "المرحلة الحالية": res['phase_type'],
+                            "المتبقي بالشهور": f"{res['remaining_months']} شهر (حتى {res['target_date_str']})",
                             "المستهدف النسبي": res['proportional_target'],
-                            "النمو المتوقع (%)": f"{res['expected_change_pct']}%",
                             "الشهر الحالي": res['m_curr_perf'],
                             "الشهر القادم": res['m_next_perf'],
                             "الأسبوع الحالي": res['w_curr_perf'],
@@ -192,13 +216,11 @@ with tab1:
                 
                 star_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=False).iloc[0]
                 worst_m_curr = rdf.sort_values(by="الشهر الحالي", ascending=True).iloc[0]
-                
                 star_m_next = rdf.sort_values(by="الشهر القادم", ascending=False).iloc[0]
                 worst_m_next = rdf.sort_values(by="الشهر القادم", ascending=True).iloc[0]
                 
                 star_w_curr = rdf.sort_values(by="الأسبوع الحالي", ascending=False).iloc[0]
                 worst_w_curr = rdf.sort_values(by="الأسبوع الحالي", ascending=True).iloc[0]
-                
                 star_w_next = rdf.sort_values(by="الأسبوع القادم", ascending=False).iloc[0]
                 worst_w_next = rdf.sort_values(by="الأسبوع القادم", ascending=True).iloc[0]
                 
@@ -230,10 +252,10 @@ with tab2:
             st.markdown(f"#### 📊 تحليل الدورة الهيكلية لـ **{comp_name} ({clean_sym})**")
             
             k1, k2, k3, k4 = st.columns(4)
-            k1.metric("السعر الحالي", f"{res['current_price']}")
-            k2.metric("الدورة الهيكلية الكبرى", f"{res['long_cycle']} شهراً")
-            k3.metric("نسبة الارتداد التناسبية", f"{res['fib_ratio']}%")
-            k4.metric("المستهدف النسبي القادم", f"{res['proportional_target']}")
+            k1.metric("تاريخ بداية الدورة", f"{res['cycle_start']}")
+            k2.metric("تاريخ نهاية الدورة", f"{res['cycle_end']}")
+            k3.metric("المرحلة الحالية", f"{res['phase_type']}")
+            k4.metric("المتبقي على انتهاء المرحلة", f"{res['remaining_months']} شهر (حتى {res['target_date_str']})")
 
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=df_m.index, y=df_m.values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
@@ -243,18 +265,19 @@ with tab2:
             fig.add_hline(y=res['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {res['wave_low']}")
             
             last_date = df_m.index[-1]
-            cycle_start = last_date - pd.DateOffset(months=res['long_cycle'])
-            peak_date = cycle_start + pd.DateOffset(months=res['up_months'])
+            cycle_start = pd.to_datetime(res['cycle_start'])
+            peak_date = pd.to_datetime(res['peak_date'])
+            cycle_end = pd.to_datetime(res['cycle_end'])
 
             fig.add_vrect(
                 x0=cycle_start, x1=peak_date, fillcolor="rgba(34, 197, 94, 0.2)",
                 layer="below", line_width=1, line_color="#22c55e",
-                annotation_text=f"مرحلة صعود ({res['up_months']}M)", annotation_position="top left"
+                annotation_text=f"صعود ({res['up_months']}M) - حتى {res['peak_date']}", annotation_position="top left"
             )
             fig.add_vrect(
-                x0=peak_date, x1=last_date, fillcolor="rgba(239, 68, 68, 0.2)",
+                x0=peak_date, x1=cycle_end, fillcolor="rgba(239, 68, 68, 0.2)",
                 layer="below", line_width=1, line_color="#ef4444",
-                annotation_text=f"مرحلة هبوط ({res['down_months']}M)", annotation_position="top right"
+                annotation_text=f"هبوط ({res['down_months']}M) - حتى {res['cycle_end']}", annotation_position="top right"
             )
 
             fig.update_layout(template="plotly_white", height=520)

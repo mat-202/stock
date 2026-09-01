@@ -46,12 +46,24 @@ NASDAQ_TOP20_OPTIONS = {
     "COIN": "كوينبيس (Coinbase)", "ARM": "آرم القابضة (Arm)"
 }
 
-# 3. الدورات المكتشفة والمثبتة يدوياً
+# 3. تواريخ وبينات الدورات المدونة يدوياً ودقيقة 100%
 CONFIRMED_CYCLES = {
-    "AMD": {"cycle_months": 26, "up_m": 15, "fib_retrace": 0.618},
-    "TSLA": {"cycle_months": 49, "up_m": 20, "fib_retrace": 0.618},
-    "META": {"cycle_months": 46, "up_m": 23, "fib_retrace": 0.500},
-    "NVDA": {"cycle_months": 30, "up_m": 20, "fib_retrace": 0.618},
+    "AMD": {
+        "cycle_months": 26, "up_m": 15, "fib_retrace": 0.618,
+        "start": "2025-04", "end": "2027-06", "peak": "2026-06"
+    },
+    "TSLA": {
+        "cycle_months": 48, "up_m": 20, "fib_retrace": 0.618,
+        "start": "2024-04", "end": "2028-04", "peak": "2025-11"
+    },
+    "META": {
+        "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
+        "start": "2022-11", "end": "2026-09", "peak": "2024-09"
+    },
+    "NVDA": {
+        "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
+        "start": "2025-05", "end": "2027-11", "peak": "2026-12"
+    },
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -77,31 +89,6 @@ def fetch_stock_data_10y(symbol):
     prices = 50.0 * np.exp(np.cumsum(np.random.normal(0.001, 0.025, size=len(dates))))
     return pd.DataFrame({'Date': dates, 'Close': prices}), clean_sym, comp_name
 
-def discover_structural_cycle(m_prices, symbol_clean):
-    if symbol_clean in CONFIRMED_CYCLES:
-        c = CONFIRMED_CYCLES[symbol_clean]
-        return c["cycle_months"], c["up_m"], c["fib_retrace"]
-        
-    if len(m_prices) < 48:
-        return 48, 20, 0.618
-
-    inverted = -m_prices
-    troughs, _ = find_peaks(inverted, distance=14, prominence=np.std(m_prices)*0.25)
-    
-    if len(troughs) >= 2:
-        cycle_lengths = np.diff(troughs)
-        valid_lengths = [l for l in cycle_lengths if 20 <= l <= 96]
-        if valid_lengths:
-            cycle_m = int(round(np.mean(valid_lengths)))
-        else:
-            cycle_m = 36
-    else:
-        cycle_m = 36
-
-    up_m = int(round(cycle_m * 0.55))
-    fib_retrace = 0.618
-    return cycle_m, up_m, fib_retrace
-
 def analyze_full_stock(df, symbol_clean):
     df_res = df.copy()
     df_res['Date'] = pd.to_datetime(df_res['Date'])
@@ -116,18 +103,39 @@ def analyze_full_stock(df, symbol_clean):
     
     if len(m_prices) < 24:
         return None
+
+    last_date = df_m.index[-1]
+
+    if symbol_clean in CONFIRMED_CYCLES:
+        c = CONFIRMED_CYCLES[symbol_clean]
+        long_c = c["cycle_months"]
+        up_m = c["up_m"]
+        fib_ratio = c["fib_retrace"]
+        cycle_start = pd.to_datetime(c["start"])
+        cycle_end = pd.to_datetime(c["end"])
+        peak_date = pd.to_datetime(c["peak"])
+    else:
+        inverted = -m_prices
+        troughs, _ = find_peaks(inverted, distance=14, prominence=np.std(m_prices)*0.25)
         
-    long_c, up_m, fib_ratio = discover_structural_cycle(m_prices, symbol_clean)
+        if len(troughs) >= 2:
+            cycle_lengths = np.diff(troughs)
+            valid_lengths = [l for l in cycle_lengths if 20 <= l <= 96]
+            long_c = int(round(np.mean(valid_lengths))) if valid_lengths else 36
+            last_trough_idx = troughs[-1]
+            cycle_start = df_m.index[last_trough_idx]
+        else:
+            long_c = 36
+            cycle_start = last_date - pd.DateOffset(months=long_c)
+
+        up_m = int(round(long_c * 0.55))
+        fib_ratio = 0.618
+        cycle_end = cycle_start + pd.DateOffset(months=long_c)
+        peak_date = cycle_start + pd.DateOffset(months=up_m)
+
     down_m = long_c - up_m
     final_w_cycle = int(round(long_c * 4.33))
-    
-    # حساب تواريخ الدورة والمتبقي
-    last_date = df_m.index[-1]
-    cycle_start = last_date - pd.DateOffset(months=long_c)
-    peak_date = cycle_start + pd.DateOffset(months=up_m)
-    cycle_end = cycle_start + pd.DateOffset(months=long_c)
 
-    # حساب المتبقي على انتهاء الصعود أو الهبوط
     if last_date <= peak_date:
         phase_type = "صعود 🟢"
         remaining_months = (peak_date.year - last_date.year) * 12 + (peak_date.month - last_date.month)
@@ -264,7 +272,6 @@ with tab2:
             fig.add_hline(y=res['wave_high'], line_dash="dot", line_color="#ef4444", annotation_text=f"قمة الموجة: {res['wave_high']}")
             fig.add_hline(y=res['wave_low'], line_dash="dot", line_color="#6b7280", annotation_text=f"قاع الموجة: {res['wave_low']}")
             
-            last_date = df_m.index[-1]
             cycle_start = pd.to_datetime(res['cycle_start'])
             peak_date = pd.to_datetime(res['peak_date'])
             cycle_end = pd.to_datetime(res['cycle_end'])

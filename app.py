@@ -10,7 +10,7 @@ try:
 except ImportError:
     YFINANCE_AVAILABLE = False
 
-st.set_page_config(page_title="منصة الدورات الزمنية والنجوم", page_icon="🌟", layout="wide")
+st.set_page_config(page_title="منصة الدورات الزمنية والدقيقة", page_icon="📈", layout="wide")
 
 st.markdown("""
 <style>
@@ -23,7 +23,6 @@ st.markdown("""
         padding: 15px;
         border-radius: 12px;
         margin-bottom: 10px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
     .worst-card-top {
         background: linear-gradient(135deg, #9f1239 0%, #be123c 100%);
@@ -31,122 +30,51 @@ st.markdown("""
         padding: 15px;
         border-radius: 12px;
         margin-bottom: 10px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     }
-    .metric-title { font-size: 0.95rem; font-weight: bold; opacity: 0.95; }
-    .metric-value { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
-    
     .company-card-positive {
         background-color: rgba(16, 185, 129, 0.08);
         border-right: 5px solid #10b981;
         padding: 10px 15px;
         border-radius: 8px;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
     }
     .company-card-negative {
         background-color: rgba(239, 68, 68, 0.08);
         border-right: 5px solid #ef4444;
         padding: 10px 15px;
         border-radius: 8px;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 30 شركة سعودية (تاسي)
+# القوائم
 TASI_ALL_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC",
     "2020.SR": "سابك للمغذيات", "2350.SR": "كيان السعودية", "1150.SR": "الإنماء", "1010.SR": "الرياض",
     "1211.SR": "معادن", "4190.SR": "جرير", "4003.SR": "أسترا الصناعية", "2381.SR": "بترو رابغ",
-    "7020.SR": "موبايلي", "4030.SR": "البحري", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو",
-    "2001.SR": "كيمانول", "2280.SR": "المراعي", "4001.SR": "أسواق العثيم", "4071.SR": "العربية",
-    "1302.SR": "بوان", "1303.SR": "صناعات كهربائية", "2040.SR": "الخزف", "2250.SR": "المجموعة السعودية",
-    "2330.SR": "المتقدمة", "8010.SR": "التعاونية"
+    "7020.SR": "موبايلي", "4030.SR": "البحري", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو"
 }
 
-# 20 شركة أمريكية (5 الخاصة بك + 15 الأكثر تداولاً في الأوبشن)
 NASDAQ_TOP20_OPTIONS = {
     "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "META": "ميتا (Meta)", 
-    "INTC": "إنتل (Intel)", "AMD": "إيه إم دي (AMD)",
-    "AAPL": "أبل (Apple)", "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)",
-    "GOOGL": "جوجل (Alphabet)", "NFLX": "نتفليكس (Netflix)", "COIN": "كوينبيس (Coinbase)",
-    "PLTR": "بالانتير (Palantir)", "BABA": "علي بابا (Alibaba)", "BA": "بوينج (Boeing)",
-    "QCOM": "كوالكوم (Qualcomm)", "JPM": "جي بي مورجان (JPMorgan)", "DIS": "ديزني (Disney)",
-    "MARA": "ماراثون (Marathon)", "PYPL": "بايبال (PayPal)", "SQ": "بلوك (Block)"
+    "INTC": "إنتل (Intel)", "AMD": "إيه إم دي (AMD)", "AAPL": "أبل (Apple)", 
+    "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)", 
+    "NFLX": "نتفليكس (Netflix)"
 }
 
-# الشركات الخاصة بك ببياناتها المدونة بدقة (تم تعديل تسلا للتطابق مع الشارت)
-CONFIRMED_CYCLES = {
-    "TSLA": {
-        "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
-        "start": "2024-04-01", "end": "2028-05-01", "peak": "2025-11-01",
-        "prev_start": "2020-03-01", "prev_end": "2024-03-31", "prev_peak_date": "2021-11-15",
-        "monthly_close": "قمة ذيل علوي سلبية 🔴", "weekly_close": "تراجع وضغط بيعي 🔴",
-        "m_perf": -7.2, "w_perf": -2.4,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "أغسطس 2022",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "سبتمبر 2022",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "02 أغسطس 2022",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "09 أغسطس 2022",
-        "curr_month_behavior": "شمعة سلبية بذيل علوي وبداية موجة هبوط 🔴", "next_month_behavior": "استمرار التراجع والضغط البيعي 🔴",
-        "curr_week_behavior": "ضغط بيعي أسبوعي 🔴", "next_week_behavior": "كسر مستويات الدعم 🔴"
-    },
-    "AMD": {
-        "cycle_months": 27, "up_m": 15, "fib_retrace": 0.618,
-        "start": "2024-04-01", "end": "2026-06-30", "peak": "2025-07-01",
-        "prev_start": "2022-01-01", "prev_end": "2024-03-31", "prev_peak_date": "2023-04-15",
-        "monthly_close": "حمراء بيعية 🔴", "weekly_close": "سلبي أسفل المتوسطات 🔴",
-        "m_perf": -9.6, "w_perf": -3.2,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "يونيو 2024",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "يوليو 2024",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "04 يونيو 2024",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "11 يونيو 2024",
-        "curr_month_behavior": "موجة تصحيح وهبوط (تطابق يونيو 2024) 🔴", "next_month_behavior": "استمرار الضغط البيعي والتراجع 🔴",
-        "curr_week_behavior": "شمعة أسبوعية حمراء وهبوط متواصل 🔴", "next_week_behavior": "محاولة كسر مستويات دعم سابقة 🔴"
-    },
-    "INTC": {
-        "cycle_months": 29, "up_m": 14, "fib_retrace": 0.618,
-        "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
-        "prev_start": "2023-04-01", "prev_end": "2025-03-31", "prev_peak_date": "2024-05-15",
-        "monthly_close": "حمراء ابتلاعية 🔴", "weekly_close": "إغلاق سلبي أسبوعي 🔴",
-        "m_perf": -4.2, "w_perf": -1.1,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2024",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2024",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "03 سبتمبر 2024",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "10 سبتمبر 2024",
-        "curr_month_behavior": "شمعة تصحيحية هابطة 🔴", "next_month_behavior": "شمعة تجميع وقاع موجة 🟡",
-        "curr_week_behavior": "كسر مستوى دعم أسبوعي 🔴", "next_week_behavior": "محاولة ارتداد لمستوى المقاومة 🟡"
-    },
-    "META": {
-        "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
-        "start": "2022-11-01", "end": "2026-09-01", "peak": "2024-09-01",
-        "prev_start": "2018-12-01", "prev_end": "2022-10-31", "prev_peak_date": "2021-09-15",
-        "monthly_close": "خضراء قوية 🟢", "weekly_close": "إغلاق أسبوعي متصاعد 🟢",
-        "m_perf": 11.8, "w_perf": 3.9,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2022",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2022",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "06 سبتمبر 2022",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "13 سبتمبر 2022",
-        "curr_month_behavior": "نهاية قمة صاعدة وبداية انعطاف 🟡", "next_month_behavior": "شهر إغلاق الدورة وبداية القاع 🔴",
-        "curr_week_behavior": "إغلاق أسبوعي متذبذب 🟡", "next_week_behavior": "ضعف في أحجام التداول 🔴"
-    },
-    "NVDA": {
-        "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
-        "start": "2025-05-01", "end": "2027-11-01", "peak": "2026-12-01",
-        "prev_start": "2022-10-01", "prev_end": "2025-04-30", "prev_peak_date": "2024-06-15",
-        "monthly_close": "دوجي انعكاسية 🟡", "weekly_close": "كسر متوسط 20 أسبوع 🔴",
-        "m_perf": 2.4, "w_perf": 0.8,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2023",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2023",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "05 سبتمبر 2023",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "12 سبتمبر 2023",
-        "curr_month_behavior": "مسار صاعد متماسك 🟢", "next_month_behavior": "تسارع نحو تسجيل قمم جديدة 🟢",
-        "curr_week_behavior": "ارتداد من متوسط الحركة 🟢", "next_week_behavior": "تداول عرضي تجميعي 🟡"
-    }
+# إعدادات الدورات (تواريخ البداية والنهاية والقمة)
+CYCLES_CONFIG = {
+    "TSLA": {"start": "2024-04-01", "end": "2028-05-01", "prev_start": "2020-03-01", "prev_end": "2024-03-31"},
+    "AMD":  {"start": "2024-04-01", "end": "2026-06-30", "prev_start": "2022-01-01", "prev_end": "2024-03-31"},
+    "INTC": {"start": "2025-04-01", "end": "2027-08-01", "prev_start": "2023-04-01", "prev_end": "2025-03-31"},
+    "META": {"start": "2022-11-01", "end": "2026-09-01", "prev_start": "2018-12-01", "prev_end": "2022-10-31"},
+    "NVDA": {"start": "2025-05-01", "end": "2027-11-01", "prev_start": "2022-10-01", "prev_end": "2025-04-30"}
 }
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def fetch_stock_data_10y(symbol):
+def fetch_stock_data(symbol):
     clean_sym = symbol.strip().upper()
     if clean_sym.isdigit():
         clean_sym = f"{clean_sym}.SR"
@@ -155,226 +83,135 @@ def fetch_stock_data_10y(symbol):
     if YFINANCE_AVAILABLE:
         try:
             df = yf.Ticker(clean_sym).history(period="10y")
-            if not df.empty and len(df) >= 240:
+            if not df.empty and len(df) >= 100:
                 df.reset_index(inplace=True)
-                df.dropna(subset=['Close'], inplace=True)
                 return df, clean_sym, comp_name
         except Exception:
             pass
-            
-    dates = pd.date_range(end=datetime.today(), periods=520, freq='W')
-    np.random.seed(abs(hash(clean_sym)) % 10000)
-    prices = 50.0 * np.exp(np.cumsum(np.random.normal(0.001, 0.025, size=len(dates))))
-    return pd.DataFrame({'Date': dates, 'Close': prices}), clean_sym, comp_name
+    return pd.DataFrame(), clean_sym, comp_name
 
-def analyze_full_stock(df, symbol_clean):
+def analyze_stock_dynamically(df, symbol_clean):
+    if df.empty:
+        return None
+        
     df_res = df.copy()
     df_res['Date'] = pd.to_datetime(df_res['Date']).dt.tz_localize(None)
     df_res.set_index('Date', inplace=True)
-    df_m = df_res['Close'].resample('ME').last().dropna()
-    m_prices = df_m.values
     
-    if len(m_prices) < 24:
+    # تجميع البيانات شهرياً بحساب الفتح والإغلاق الحقيقي
+    df_monthly = df_res.resample('MS').agg({
+        'Open': 'first',
+        'High': 'max',
+        'Low': 'min',
+        'Close': 'last'
+    }).dropna()
+
+    if len(df_monthly) < 24:
         return None
 
-    last_date = pd.Timestamp(df_m.index[-1]).tz_localize(None)
-
-    if symbol_clean in CONFIRMED_CYCLES:
-        c = CONFIRMED_CYCLES[symbol_clean]
-        long_c = int(c["cycle_months"])
-        up_m = int(c["up_m"])
-        fib_ratio = float(c["fib_retrace"])
-        cycle_start = pd.Timestamp(c["start"]).tz_localize(None)
-        cycle_end = pd.Timestamp(c["end"]).tz_localize(None)
-        peak_date = pd.Timestamp(c["peak"]).tz_localize(None)
-        m_perf = c.get("m_perf", 2.5)
-        w_perf = c.get("w_perf", 1.1)
-        prev_info = {
-            "p_start": c.get("prev_start", "غير محدد"),
-            "p_end": c.get("prev_end", "غير محدد"),
-            "p_peak": c.get("prev_peak_date", "غير محدد"),
-            "m_close": c.get("monthly_close", "غير متوفر"),
-            "w_close": c.get("weekly_close", "غير متوفر"),
-            "curr_month_date": c.get("curr_month_date", ""),
-            "curr_month_prev_date": c.get("curr_month_prev_date", ""),
-            "next_month_date": c.get("next_month_date", ""),
-            "next_month_prev_date": c.get("next_month_prev_date", ""),
-            "curr_week_date": c.get("curr_week_date", ""),
-            "curr_week_prev_date": c.get("curr_week_prev_date", ""),
-            "next_week_date": c.get("next_week_date", ""),
-            "next_week_prev_date": c.get("next_week_prev_date", ""),
-            "curr_month_behavior": c.get("curr_month_behavior", ""),
-            "next_month_behavior": c.get("next_month_behavior", ""),
-            "curr_week_behavior": c.get("curr_week_behavior", ""),
-            "next_week_behavior": c.get("next_week_behavior", "")
-        }
-    else:
-        seed_val = abs(hash(symbol_clean))
-        long_c = (seed_val % 28) + 20
-        
-        up_ratios = [0.35, 0.40, 0.48, 0.55, 0.62, 0.68]
-        chosen_ratio = up_ratios[seed_val % len(up_ratios)]
-        up_m = max(1, int(long_c * chosen_ratio))
-        
-        fib_ratio = 0.618
-        
-        cycle_start = last_date - pd.DateOffset(months=up_m)
-        cycle_end = cycle_start + pd.DateOffset(months=long_c)
-        peak_date = cycle_start + pd.DateOffset(months=up_m)
-        
-        np.random.seed(seed_val % 1000)
-        m_perf = round(float(np.random.uniform(-9.0, 13.0)), 1)
-        w_perf = round(m_perf / 3.0, 1)
-        
-        prev_start_d = cycle_start - pd.DateOffset(months=long_c)
-        prev_end_d = cycle_start
-        
-        prev_info = {
-            "p_start": prev_start_d.strftime("%Y-%m"),
-            "p_end": prev_end_d.strftime("%Y-%m"),
-            "p_peak": (prev_start_d + pd.DateOffset(months=up_m)).strftime("%Y-%m"),
-            "m_close": "توازن حركي 🟡",
-            "w_close": "تذبذب عرضي 🟡",
-            "curr_month_date": "سبتمبر 2026", 
-            "curr_month_prev_date": (prev_start_d + pd.DateOffset(months=up_m)).strftime("%B %Y"),
-            "next_month_date": "أكتوبر 2026", 
-            "next_month_prev_date": (prev_start_d + pd.DateOffset(months=up_m+1)).strftime("%B %Y"),
-            "curr_week_date": "01 سبتمبر 2026", 
-            "curr_week_prev_date": (prev_start_d + pd.DateOffset(months=up_m)).strftime("%d %B %Y"),
-            "next_week_date": "08 سبتمبر 2026", 
-            "next_week_prev_date": (prev_start_d + pd.DateOffset(months=up_m, days=7)).strftime("%d %B %Y"),
-            "curr_month_behavior": "موجة صاعدة نحو الهدف 🟢" if m_perf > 0 else "موجة هابطة وتراجع 🔴",
-            "next_month_behavior": "استمرار المسار الرئيسي 🟡",
-            "curr_week_behavior": "اختبار مستويات حركة سابقة 🟡",
-            "next_week_behavior": "تجميع واستعداد للإنطلاق 🟢" if m_perf > 0 else "ضغط بيعي متواصل 🔴"
-        }
-
-    down_m = long_c - up_m
-    phase_type = "صعود 🟢" if last_date <= peak_date else "هبوط 🔴"
+    # إعدادات الدورة
+    cfg = CYCLES_CONFIG.get(symbol_clean, {
+        "start": "2024-01-01", "end": "2028-01-01",
+        "prev_start": "2020-01-01", "prev_end": "2024-01-01"
+    })
     
-    recent_segment = m_prices[-long_c:]
-    wave_high = np.max(recent_segment)
-    wave_low = np.min(recent_segment)
-    current_price = m_prices[-1]
-    proportional_target = wave_low + ((wave_high - wave_low) * fib_ratio)
+    c_start = pd.Timestamp(cfg["start"])
+    p_start = pd.Timestamp(cfg["prev_start"])
+    
+    # الشهر الحالي في الشارت (مثلاً سبتمبر 2026)
+    curr_date = pd.Timestamp("2026-09-01")
+    
+    # حساب أوفست الأشهر بين بداية الدورة والشهر الحالي
+    month_offset = (curr_date.year - c_start.year) * 12 + (curr_date.month - c_start.month)
+    
+    # تحديد الشهر المطابق الحقيقي في الدورة السابقة
+    matched_prev_date = p_start + pd.DateOffset(months=month_offset)
+    next_prev_date = matched_prev_date + pd.DateOffset(months=1)
+
+    # دالة فحص لون وسلوك الشمعة الحقيقية من بيانات ياهو فاينانس
+    def get_candle_analysis(target_date):
+        # البحث عن الشمعة في التاريخ المطابق بالضبط
+        matching_rows = df_monthly[(df_monthly.index.year == target_date.year) & (df_monthly.index.month == target_date.month)]
+        if not matching_rows.empty:
+            row = matching_rows.iloc[0]
+            open_p, close_p = row['Open'], row['Close']
+            pct_change = ((close_p - open_p) / open_p) * 100
+            
+            if close_p < open_p:
+                color_icon = "🔴"
+                behavior = f"شمعة سلبية هابطة ({pct_change:.1f}%)"
+                is_pos = False
+            else:
+                color_icon = "🟢"
+                behavior = f"شمعة إيجابية صاعدة (+{pct_change:.1f}%)"
+                is_pos = True
+            return behavior, color_icon, pct_change, is_pos
+        else:
+            return "بيانات الشمعة غير متوفرة 🟡", "🟡", 0.0, False
+
+    # فحص الشهر الحالي والشهر القادم
+    curr_behavior, curr_icon, curr_perf, curr_is_pos = get_candle_analysis(matched_prev_date)
+    next_behavior, next_icon, _, _ = get_candle_analysis(next_prev_date)
+
+    current_price = df_monthly['Close'].iloc[-1]
 
     return {
-        "df_m": df_m,
-        "long_cycle": long_c,
-        "up_months": up_m,
-        "down_months": down_m,
-        "cycle_start": cycle_start.strftime("%Y-%m"),
-        "cycle_end": cycle_end.strftime("%Y-%m"),
-        "peak_date": peak_date.strftime("%Y-%m"),
-        "phase_type": phase_type,
+        "symbol": symbol_clean,
         "current_price": round(current_price, 2),
-        "proportional_target": round(proportional_target, 2),
-        "m_perf": m_perf,
-        "w_perf": w_perf,
-        "prev_info": prev_info
+        "curr_month_date": curr_date.strftime("%B %Y"),
+        "matched_prev_date_str": matched_prev_date.strftime("%B %Y"),
+        "curr_behavior": curr_behavior,
+        "curr_icon": curr_icon,
+        "curr_perf": round(curr_perf, 1),
+        "curr_is_pos": curr_is_pos,
+        "next_month_date": (curr_date + pd.DateOffset(months=1)).strftime("%B %Y"),
+        "next_matched_prev_date_str": next_prev_date.strftime("%B %Y"),
+        "next_behavior": next_behavior,
+        "next_icon": next_icon,
+        "df_m": df_monthly['Close']
     }
 
-st.title("🌟 منصة الدورات الزمنية والنجوم")
+st.title("📈 التحليل الدوري والتطابق الحقيقي لشموع الأسهم")
 
-market_choice = st.radio("اختر السوق للتحليل:", ["أمريكي (أعلى 20 أوبشن)", "سعودي (أعلى 30 تاسي)"], horizontal=True)
+market_choice = st.radio("اختر السوق:", ["أمريكي (NASDAQ)", "سعودي (TASI)"], horizontal=True)
 pool = NASDAQ_TOP20_OPTIONS if "أمريكي" in market_choice else TASI_ALL_STOCKS
 
-data_list = []
+results = []
 for sym, name in pool.items():
-    df_raw, c_sym, c_name = fetch_stock_data_10y(sym)
+    df_raw, c_sym, c_name = fetch_stock_data(sym)
     if not df_raw.empty:
-        res = analyze_full_stock(df_raw, c_sym)
+        res = analyze_stock_dynamically(df_raw, c_sym)
         if res:
-            res["sym"] = c_sym
             res["name"] = c_name
-            data_list.append(res)
+            results.append(res)
 
-if data_list:
-    sorted_m = sorted(data_list, key=lambda x: x['m_perf'], reverse=True)
-    star_m = sorted_m[0]
-    worst_m = sorted_m[-1]
-
-    st.markdown("### 👑 عرش النجوم والأداء الدوري")
+if results:
+    # ترتيب الشركات حسب الأداء الحقيقي للشمعة المطابقة
+    sorted_res = sorted(results, key=lambda x: x['curr_perf'], reverse=True)
     
-    sp = star_m["prev_info"]
-    wp = worst_m["prev_info"]
+    st.markdown("### 📊 نتائج مطابقة الشموع الحقيقية من الشارت")
 
-    col_star, col_worst = st.columns(2)
-    
-    with col_star:
+    for rank, item in enumerate(sorted_res, 1):
+        card_class = "company-card-positive" if item['curr_is_pos'] else "company-card-negative"
+        
         st.markdown(f"""
-        <div class="star-card-top">
-            <div class="metric-title">🌟 نجم السوق (الأعلى أداءً)</div>
-            <div class="metric-value">{star_m['name']} ({star_m['sym']})</div>
-            <div style="margin-top:8px; font-size: 1.05rem;">
-                • الأداء الشهري: <b>+{star_m['m_perf']}%</b><br>
-                • الأداء الأسبوعي: <b>+{star_m['w_perf']}%</b>
-            </div>
+        <div class="{card_class}">
+            <b>#{rank} | {item['name']} ({item['symbol']})</b> — 
+            الشمعة المطابقة: <b>{item['matched_prev_date_str']}</b> | 
+            الأداء الفعلي للشمعة: <b>{item['curr_perf']}% {item['curr_icon']}</b> | 
+            السعر الحالي: <b>${item['current_price']}</b>
         </div>
         """, unsafe_allow_html=True)
         
-        with st.expander("📅 عرض التواريخ المطابقة في الدورة السابقة"):
+        with st.expander(f"🔍 تفاصيل الشمعة المطابقة لـ {item['name']}"):
             st.markdown(f"""
-            • **الأسبوع الحالي ({sp['curr_week_date']}):** يطابق `{sp['curr_week_prev_date']}` ({sp['curr_week_behavior']})  
-            • **الشهر الحالي ({sp['curr_month_date']}):** يطابق `{sp['curr_month_prev_date']}` ({sp['curr_month_behavior']})
+            - 🗓️ **الشهر الحالي ({item['curr_month_date']}):** تطابقه شمعة **{item['matched_prev_date_str']}** 👈 **{item['curr_behavior']} {item['curr_icon']}**
+            - 🗓️ **الشهر القادم ({item['next_month_date']}):** تطابقه شمعة **{item['next_matched_prev_date_str']}** 👈 **{item['next_behavior']} {item['next_icon']}**
             """)
-
-    with col_worst:
-        st.markdown(f"""
-        <div class="worst-card-top">
-            <div class="metric-title">⚠️ الأقل أداءً في السوق</div>
-            <div class="metric-value">{worst_m['name']} ({worst_m['sym']})</div>
-            <div style="margin-top:8px; font-size: 1.05rem;">
-                • الأداء الشهري: <b>{worst_m['m_perf']}%</b><br>
-                • الأداء الأسبوعي: <b>{worst_m['w_perf']}%</b>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander("📅 عرض التواريخ المطابقة في الدورة السابقة"):
-            st.markdown(f"""
-            • **الأسبوع الحالي ({wp['curr_week_date']}):** يطابق `{wp['curr_week_prev_date']}` ({wp['curr_week_behavior']})  
-            • **الشهر الحالي ({wp['curr_month_date']}):** يطابق `{wp['curr_month_prev_date']}` ({wp['curr_month_behavior']})
-            """)
-
-    st.markdown("---")
-    st.markdown("### 📊 ترتيب الشركات مع التلوين حسب الأداء")
-
-    for rank, item in enumerate(sorted_m, 1):
-        p = item["prev_info"]
-        is_positive = item['m_perf'] >= 0
-        card_style = "company-card-positive" if is_positive else "company-card-negative"
-        perf_symbol = "🟢" if is_positive else "🔴"
-        perf_sign = "+" if is_positive else ""
-        
-        st.markdown(f"""
-        <div class="{card_style}">
-            <b>#{rank} | {item['name']} ({item['sym']})</b> — 
-            الأداء الشهري: <b>{perf_sign}{item['m_perf']}% {perf_symbol}</b> | 
-            الأسبوعي: <b>{perf_sign}{item['w_perf']}%</b> | 
-            المسار: <b>{item['phase_type']}</b>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        with st.expander(f"🔍 التفاصيل والتواريخ المطابقة لـ {item['name']}"):
-            st.markdown(f"""
-            **🔄 تفاصيل الدورة الحالية ({item['long_cycle']} شهراً - قاع إلى قاع):**
-            - **مدة الصعود للقمة:** {item['up_months']} شهراً | **مدة الهبوط للقاع التالي:** {item['down_months']} شهراً
-            - **السعر الحالي:** {item['current_price']} | **المستهدف النسبي:** {item['proportional_target']}
-            - **بداية الدورة:** {item['cycle_start']} | **نهايتها:** {item['cycle_end']} | **شهر القمة:** {item['peak_date']}
-            """)
-
-            st.markdown("---")
-            st.markdown("#### 🗓️ مطابقة التواريخ وسلوك الشموع في الدورة السابقة:")
-            
-            st.markdown(f"- **الأسبوع الحالي ({p['curr_week_date']}):** يصادف تاريخ **{p['curr_week_prev_date']}** 👈 ({p['curr_week_behavior']})")
-            st.markdown(f"- **الأسبوع القادم ({p['next_week_date']}):** سيصادف تاريخ **{p['next_week_prev_date']}** 👈 ({p['next_week_behavior']})")
-            
-            st.markdown(f"- **الشهر الحالي ({p['curr_month_date']}):** يصادف شهر **{p['curr_month_prev_date']}** 👈 ({p['curr_month_behavior']})")
-            st.markdown(f"- **الشهر القادم ({p['next_month_date']}):** سيصادف شهر **{p['next_month_prev_date']}** 👈 ({p['next_month_behavior']})")
 
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=item['df_m'].index, y=item['df_m'].values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
-            fig.add_hline(y=item['proportional_target'], line_dash="dash", line_color="#10b981", annotation_text=f"المستهدف: {item['proportional_target']}")
-            fig.update_layout(template="plotly_white", height=260, margin=dict(l=10, r=10, t=20, b=10))
+            fig.update_layout(template="plotly_white", height=230, margin=dict(l=10, r=10, t=10, b=10))
             st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("جاري جلب البيانات من yfinance، يرجى الانتظار...")

@@ -65,6 +65,21 @@ CONFIRMED_CYCLES = {
         "curr_week_behavior": "ضغط بيعي أسبوعي 🔴",
         "next_week_behavior": "اختبار قاع الأسبوع السابق 🔴"
     },
+    "AMD": {
+        "cycle_months": 27, "up_m": 15, "fib_retrace": 0.618,
+        "start": "2024-04-01", "end": "2026-06-30", "peak": "2025-07-01",
+        "prev_start": "2022-01-01", "prev_end": "2024-03-31", "prev_peak_date": "2023-04-15",
+        "monthly_close": "خضراء ابتلاعية 🟢", "weekly_close": "إيجابي أعلى 50 EMA 🟢",
+        "m_perf": 14.2, "w_perf": 5.3,
+        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "يونيو 2024",
+        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "يوليو 2024",
+        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "04 يونيو 2024",
+        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "11 يونيو 2024",
+        "curr_month_behavior": "اندفاع صاعد قوي وااختراق قمة 🟢",
+        "next_month_behavior": "استمرار الصعود نحو المستهدف 🟢",
+        "curr_week_behavior": "شمعة أسبوعية خضراء ممتدة 🟢",
+        "next_week_behavior": "تذبذب عند مستهدفات فيبوناتشي 🟡"
+    },
     "INTC": {
         "cycle_months": 29, "up_m": 14, "fib_retrace": 0.618,
         "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
@@ -79,21 +94,6 @@ CONFIRMED_CYCLES = {
         "next_month_behavior": "شمعة تجميع وقاع موجة 🟡",
         "curr_week_behavior": "كسر مستوى دعم أسبوعي 🔴",
         "next_week_behavior": "محاولة ارتداد لمستوى المقاومة 🟡"
-    },
-    "AMD": {
-        "cycle_months": 26, "up_m": 15, "fib_retrace": 0.618,
-        "start": "2025-04-01", "end": "2027-06-01", "peak": "2026-06-01",
-        "prev_start": "2023-01-01", "prev_end": "2025-02-28", "prev_peak_date": "2024-03-15",
-        "monthly_close": "خضراء ابتلاعية 🟢", "weekly_close": "إيجابي أعلى 50 EMA 🟢",
-        "m_perf": 14.2, "w_perf": 5.3,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2024",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2024",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "03 سبتمبر 2024",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "10 سبتمبر 2024",
-        "curr_month_behavior": "اندفاع صاعد قوي واختراق قمة 🟢",
-        "next_month_behavior": "استمرار الصعود نحو المستهدف 🟢",
-        "curr_week_behavior": "شمعة أسبوعية خضراء ممتدة 🟢",
-        "next_week_behavior": "تذبذب عند مستهدفات فيبوناتشي 🟡"
     },
     "META": {
         "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,

@@ -76,20 +76,20 @@ NASDAQ_TOP20_OPTIONS = {
     "MARA": "ماراثون (Marathon)", "PYPL": "بايبال (PayPal)", "SQ": "بلوك (Block)"
 }
 
-# الشركات الخاصة بك ببياناتها المدونة بدقة
+# الشركات الخاصة بك ببياناتها المدونة بدقة (تم تعديل تسلا للتطابق مع الشارت)
 CONFIRMED_CYCLES = {
     "TSLA": {
         "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
         "start": "2024-04-01", "end": "2028-05-01", "peak": "2025-11-01",
         "prev_start": "2020-03-01", "prev_end": "2024-03-31", "prev_peak_date": "2021-11-15",
-        "monthly_close": "قمة ذيل علوي 🔴", "weekly_close": "تذبذب عالي مائل للهبوط 🔴",
-        "m_perf": 8.5, "w_perf": 2.1,
+        "monthly_close": "قمة ذيل علوي سلبية 🔴", "weekly_close": "تراجع وضغط بيعي 🔴",
+        "m_perf": -7.2, "w_perf": -2.4,
         "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "أغسطس 2022",
         "next_month_date": "أكتوبر 2026", "next_month_prev_date": "سبتمبر 2022",
         "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "02 أغسطس 2022",
         "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "09 أغسطس 2022",
-        "curr_month_behavior": "موجة ارتداد صاعدة 🟢", "next_month_behavior": "شمعة حيرة وتوازن مؤقت 🟡",
-        "curr_week_behavior": "ضغط شراء أسبوعي 🟢", "next_week_behavior": "اختبار مقاومة الأسبوع السابق 🟡"
+        "curr_month_behavior": "شمعة سلبية بذيل علوي وبداية موجة هبوط 🔴", "next_month_behavior": "استمرار التراجع والضغط البيعي 🔴",
+        "curr_week_behavior": "ضغط بيعي أسبوعي 🔴", "next_week_behavior": "كسر مستويات الدعم 🔴"
     },
     "AMD": {
         "cycle_months": 27, "up_m": 15, "fib_retrace": 0.618,
@@ -209,14 +209,12 @@ def analyze_full_stock(df, symbol_clean):
             "next_week_behavior": c.get("next_week_behavior", "")
         }
     else:
-        # حساب دورات بقاع وقاع متغيرين وقمة مختلفة النسب بحسب السهم (غير مشروطة بالمنتصف)
         seed_val = abs(hash(symbol_clean))
-        long_c = (seed_val % 28) + 20  # طول الدورة من قاع لقاع (بين 20 و 48 شهر)
+        long_c = (seed_val % 28) + 20
         
-        # توزيع نسبة موقع القمة بالنسبة لطول الدورة الكلي (تتفاوت بين 30% و 70% من الدورة)
         up_ratios = [0.35, 0.40, 0.48, 0.55, 0.62, 0.68]
         chosen_ratio = up_ratios[seed_val % len(up_ratios)]
-        up_m = max(1, int(long_c * chosen_ratio)) # قمة مستقلة ومختلفة لكل شركة
+        up_m = max(1, int(long_c * chosen_ratio))
         
         fib_ratio = 0.618
         
@@ -303,7 +301,6 @@ if data_list:
 
     col_star, col_worst = st.columns(2)
     
-    # 🌟 عرض نجم السوق (الأداء فقط + تواريخ مخفية)
     with col_star:
         st.markdown(f"""
         <div class="star-card-top">
@@ -322,7 +319,6 @@ if data_list:
             • **الشهر الحالي ({sp['curr_month_date']}):** يطابق `{sp['curr_month_prev_date']}` ({sp['curr_month_behavior']})
             """)
 
-    # ⚠️ عرض الأقل أداءً (الأداء فقط + تواريخ مخفية)
     with col_worst:
         st.markdown(f"""
         <div class="worst-card-top">
@@ -351,7 +347,6 @@ if data_list:
         perf_symbol = "🟢" if is_positive else "🔴"
         perf_sign = "+" if is_positive else ""
         
-        # كارت الشركة الملون
         st.markdown(f"""
         <div class="{card_style}">
             <b>#{rank} | {item['name']} ({item['sym']})</b> — 
@@ -361,7 +356,6 @@ if data_list:
         </div>
         """, unsafe_allow_html=True)
         
-        # تفاصيل الشركة قابلة للتوسع
         with st.expander(f"🔍 التفاصيل والتواريخ المطابقة لـ {item['name']}"):
             st.markdown(f"""
             **🔄 تفاصيل الدورة الحالية ({item['long_cycle']} شهراً - قاع إلى قاع):**

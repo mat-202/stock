@@ -53,30 +53,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 30 شركة سعودية (تاسي)
+# قائمة تاسي
 TASI_ALL_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC",
     "2020.SR": "سابك للمغذيات", "2350.SR": "كيان السعودية", "1150.SR": "الإنماء", "1010.SR": "الرياض",
     "1211.SR": "معادن", "4190.SR": "جرير", "4003.SR": "أسترا الصناعية", "2381.SR": "بترو رابغ",
-    "7020.SR": "موبايلي", "4030.SR": "البحري", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو",
-    "2001.SR": "كيمانول", "2280.SR": "المراعي", "4001.SR": "أسواق العثيم", "4071.SR": "العربية",
-    "1302.SR": "بوان", "1303.SR": "صناعات كهربائية", "2040.SR": "الخزف", "2250.SR": "المجموعة السعودية",
-    "2330.SR": "المتقدمة", "8010.SR": "التعاونية"
+    "7020.SR": "موبايلي", "4030.SR": "البحري", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو"
 }
 
-# 20 شركة أمريكية
+# قائمة ناسداك
 NASDAQ_TOP20_OPTIONS = {
     "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "META": "ميتا (Meta)", 
     "INTC": "إنتل (Intel)", "AMD": "إيه إم دي (AMD)", "AAPL": "أبل (Apple)", 
     "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)", 
-    "NFLX": "نتفليكس (Netflix)", "COIN": "كوينبيس (Coinbase)", "PLTR": "بالانتير (Palantir)", 
-    "BABA": "علي بابا (Alibaba)", "BA": "بوينج (Boeing)", "QCOM": "كوالكوم (Qualcomm)", 
-    "JPM": "جي بي مورجان (JPMorgan)", "DIS": "ديزني (Disney)", "MARA": "ماراثون (Marathon)", 
-    "PYPL": "بايبال (PayPal)", "SQ": "بلوك (Block)"
+    "NFLX": "نتفليكس (Netflix)"
 }
 
-# تعديل إعدادات الدورات (تم تصحيح ميتا بالدقة المطلوب)
+# تصحيح إعدادات ميتا بالضبط
 CONFIRMED_CYCLES = {
     "TSLA": {
         "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
@@ -96,7 +90,7 @@ CONFIRMED_CYCLES = {
     "META": {
         "cycle_months": 46, "up_m": 33, "fib_retrace": 0.500,
         "start": "2022-11-01", "end": "2026-09-01", "peak": "2025-08-01",
-        "prev_start": "2018-12-01", "prev_end": "2022-10-31"
+        "prev_start": "2018-11-01", "prev_end": "2022-10-31"  # تم تعديل بداية الدورة السابقة لتكون 2018-11-01
     },
     "NVDA": {
         "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
@@ -155,9 +149,7 @@ def analyze_full_stock_dynamically(df, symbol_clean):
     else:
         seed_val = abs(hash(symbol_clean))
         long_c = (seed_val % 28) + 20
-        up_ratios = [0.35, 0.40, 0.48, 0.55, 0.62, 0.68]
-        chosen_ratio = up_ratios[seed_val % len(up_ratios)]
-        up_m = max(1, int(long_c * chosen_ratio))
+        up_m = max(1, int(long_c * 0.6))
         fib_ratio = 0.618
         cycle_start = last_date - pd.DateOffset(months=up_m)
         cycle_end = cycle_start + pd.DateOffset(months=long_c)

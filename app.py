@@ -76,7 +76,7 @@ NASDAQ_TOP20_OPTIONS = {
     "PYPL": "بايبال (PayPal)", "SQ": "بلوك (Block)"
 }
 
-# إعدادات الدورات للشركات المعرفة
+# تعديل إعدادات الدورات (تم تصحيح ميتا بالدقة المطلوب)
 CONFIRMED_CYCLES = {
     "TSLA": {
         "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
@@ -94,8 +94,8 @@ CONFIRMED_CYCLES = {
         "prev_start": "2023-04-01", "prev_end": "2025-03-31"
     },
     "META": {
-        "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
-        "start": "2022-11-01", "end": "2026-09-01", "peak": "2024-09-01",
+        "cycle_months": 46, "up_m": 33, "fib_retrace": 0.500,
+        "start": "2022-11-01", "end": "2026-09-01", "peak": "2025-08-01",
         "prev_start": "2018-12-01", "prev_end": "2022-10-31"
     },
     "NVDA": {
@@ -135,7 +135,6 @@ def analyze_full_stock_dynamically(df, symbol_clean):
     df_res['Date'] = pd.to_datetime(df_res['Date']).dt.tz_localize(None)
     df_res.set_index('Date', inplace=True)
     
-    # تجميع شهري وأسبوعي بالـ OHLC
     df_m = df_res.resample('MS').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last'}).dropna()
     df_w = df_res.resample('W-MON').agg({'Open': 'first', 'High': 'max', 'Low': 'min', 'Close': 'last'}).dropna()
 
@@ -144,7 +143,6 @@ def analyze_full_stock_dynamically(df, symbol_clean):
 
     last_date = df_m.index[-1]
 
-    # استخراج إعدادات الدورة
     if symbol_clean in CONFIRMED_CYCLES:
         c = CONFIRMED_CYCLES[symbol_clean]
         long_c = int(c["cycle_months"])
@@ -169,17 +167,14 @@ def analyze_full_stock_dynamically(df, symbol_clean):
     down_m = long_c - up_m
     phase_type = "صعود 🟢" if last_date <= peak_date else "هبوط 🔴"
 
-    # حساب المستهدف النسبي
     recent_segment = df_m['Close'].values[-long_c:] if len(df_m) >= long_c else df_m['Close'].values
     wave_high = np.max(recent_segment)
     wave_low = np.min(recent_segment)
     current_price = df_m['Close'].iloc[-1]
     proportional_target = wave_low + ((wave_high - wave_low) * fib_ratio)
 
-    # تاريخ اليوم الحالي لربط الشموع
     curr_date = pd.Timestamp("2026-09-01")
     
-    # حساب الأوفست الزمني بالمطابقة الدقيقة
     time_delta = curr_date - cycle_start
     matched_curr_week_date = prev_start + time_delta
     matched_next_week_date = matched_curr_week_date + pd.DateOffset(days=7)
@@ -188,7 +183,6 @@ def analyze_full_stock_dynamically(df, symbol_clean):
     matched_curr_month_date = prev_start + pd.DateOffset(months=m_offset)
     matched_next_month_date = matched_curr_month_date + pd.DateOffset(months=1)
 
-    # دالة تقييم الشمعة من البيانات الحقيقية
     def eval_candle(df_target, target_date, is_weekly=False):
         if df_target.empty:
             return "بيانات غير متوفرة 🟡", "🟡", 0.0, False, target_date.strftime("%Y-%m-%d")
@@ -217,7 +211,6 @@ def analyze_full_stock_dynamically(df, symbol_clean):
         fmt = "%d %B %Y" if is_weekly else "%B %Y"
         return desc, icon, round(pct, 1), is_pos, actual_date.strftime(fmt)
 
-    # تقييم الشموع أسبوعياً وشحرياً
     c_w_desc, c_w_icon, c_w_perf, _, c_w_date = eval_candle(df_w, matched_curr_week_date, is_weekly=True)
     n_w_desc, n_w_icon, _, _, n_w_date = eval_candle(df_w, matched_next_week_date, is_weekly=True)
     
@@ -272,7 +265,6 @@ for sym, name in pool.items():
             data_list.append(res)
 
 if data_list:
-    # ترتيب الشركات بالأداء الفعلي للشمعة المطابقة
     sorted_m = sorted(data_list, key=lambda x: x['m_perf'], reverse=True)
     star_m = sorted_m[0]
     worst_m = sorted_m[-1]
@@ -281,7 +273,6 @@ if data_list:
 
     col_star, col_worst = st.columns(2)
     
-    # 🌟 عرض نجم السوق
     with col_star:
         st.markdown(f"""
         <div class="star-card-top">
@@ -300,7 +291,6 @@ if data_list:
             • **الشهر الحالي ({star_m['curr_month_date']}):** يطابق `{star_m['matched_curr_m_date']}` 👈 ({star_m['matched_curr_m_desc']})
             """)
 
-    # ⚠️ عرض الأقل أداءً
     with col_worst:
         st.markdown(f"""
         <div class="worst-card-top">

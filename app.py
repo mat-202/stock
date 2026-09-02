@@ -57,45 +57,42 @@ st.markdown("""
 TASI_ALL_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC",
-    "2020.SR": "سابك للمغذيات", "2350.SR": "كيان السعودية", "1150.SR": "الإنماء", "1010.SR": "الرياض",
-    "1211.SR": "معادن", "4190.SR": "جرير", "4003.SR": "أسترا الصناعية", "2381.SR": "بترو رابغ",
-    "7020.SR": "موبايلي", "4030.SR": "البحري", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو"
+    "2020.SR": "سابك للمغذيات", "2350.SR": "كيان السعودية", "1150.SR": "الإنماء", "1010.SR": "الرياض"
 }
 
 # قائمة ناسداك
 NASDAQ_TOP20_OPTIONS = {
     "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "META": "ميتا (Meta)", 
     "INTC": "إنتل (Intel)", "AMD": "إيه إم دي (AMD)", "AAPL": "أبل (Apple)", 
-    "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)", 
-    "NFLX": "نتفليكس (Netflix)"
+    "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)", "GOOGL": "جوجل (Alphabet)"
 }
 
-# تصحيح إعدادات ميتا بالضبط
+# ضبط تواريخ الدورات بدقة
 CONFIRMED_CYCLES = {
     "TSLA": {
         "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
         "start": "2024-04-01", "end": "2028-05-01", "peak": "2025-11-01",
-        "prev_start": "2020-03-01", "prev_end": "2024-03-31"
+        "prev_start": "2020-03-01", "prev_end": "2024-04-01"
     },
     "AMD": {
         "cycle_months": 27, "up_m": 15, "fib_retrace": 0.618,
         "start": "2024-04-01", "end": "2026-06-30", "peak": "2025-07-01",
-        "prev_start": "2022-01-01", "prev_end": "2024-03-31"
+        "prev_start": "2022-01-01", "prev_end": "2024-04-01"
     },
     "INTC": {
         "cycle_months": 29, "up_m": 14, "fib_retrace": 0.618,
         "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
-        "prev_start": "2023-04-01", "prev_end": "2025-03-31"
+        "prev_start": "2023-04-01", "prev_end": "2025-04-01"
     },
     "META": {
         "cycle_months": 46, "up_m": 33, "fib_retrace": 0.500,
         "start": "2022-11-01", "end": "2026-09-01", "peak": "2025-08-01",
-        "prev_start": "2018-11-01", "prev_end": "2022-10-31"  # تم تعديل بداية الدورة السابقة لتكون 2018-11-01
+        "prev_start": "2018-11-01", "prev_end": "2022-11-01"
     },
     "NVDA": {
         "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
         "start": "2025-05-01", "end": "2027-11-01", "peak": "2026-12-01",
-        "prev_start": "2022-10-01", "prev_end": "2025-04-30"
+        "prev_start": "2022-10-01", "prev_end": "2025-05-01"
     }
 }
 
@@ -146,6 +143,7 @@ def analyze_full_stock_dynamically(df, symbol_clean):
         cycle_end = pd.Timestamp(c["end"])
         peak_date = pd.Timestamp(c["peak"])
         prev_start = pd.Timestamp(c["prev_start"])
+        prev_end = pd.Timestamp(c["prev_end"])
     else:
         seed_val = abs(hash(symbol_clean))
         long_c = (seed_val % 28) + 20
@@ -155,6 +153,7 @@ def analyze_full_stock_dynamically(df, symbol_clean):
         cycle_end = cycle_start + pd.DateOffset(months=long_c)
         peak_date = cycle_start + pd.DateOffset(months=up_m)
         prev_start = cycle_start - pd.DateOffset(months=long_c)
+        prev_end = cycle_start
 
     down_m = long_c - up_m
     phase_type = "صعود 🟢" if last_date <= peak_date else "هبوط 🔴"
@@ -166,14 +165,28 @@ def analyze_full_stock_dynamically(df, symbol_clean):
     proportional_target = wave_low + ((wave_high - wave_low) * fib_ratio)
 
     curr_date = pd.Timestamp("2026-09-01")
+
+    # --- المعادلة النسبية الدقيقة لمنع إزاحة التواريخ ---
+    total_curr_m = (cycle_end.year - cycle_start.year) * 12 + (cycle_end.month - cycle_start.month)
+    total_prev_m = (prev_end.year - prev_start.year) * 12 + (prev_end.month - prev_start.month)
     
-    time_delta = curr_date - cycle_start
+    elapsed_m = (curr_date.year - cycle_start.year) * 12 + (curr_date.month - cycle_start.month)
+    
+    # نسبة التقدم في الدورة الحالية
+    progress = elapsed_m / total_curr_m if total_curr_m > 0 else 0
+    progress_next = (elapsed_m + 1) / total_curr_m if total_curr_m > 0 else 0
+
+    # إسقاط النسبة تماماً على الدورة السابقة
+    prev_offset_m = int(round(progress * total_prev_m))
+    prev_offset_next_m = int(round(progress_next * total_prev_m))
+
+    matched_curr_month_date = prev_start + pd.DateOffset(months=prev_offset_m)
+    matched_next_month_date = prev_start + pd.DateOffset(months=prev_offset_next_m)
+
+    # حساب المطابقة الأسبوعية بنفس النسبة
+    time_delta = (prev_end - prev_start) * progress
     matched_curr_week_date = prev_start + time_delta
     matched_next_week_date = matched_curr_week_date + pd.DateOffset(days=7)
-
-    m_offset = (curr_date.year - cycle_start.year) * 12 + (curr_date.month - cycle_start.month)
-    matched_curr_month_date = prev_start + pd.DateOffset(months=m_offset)
-    matched_next_month_date = matched_curr_month_date + pd.DateOffset(months=1)
 
     def eval_candle(df_target, target_date, is_weekly=False):
         if df_target.empty:

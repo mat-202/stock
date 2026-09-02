@@ -35,7 +35,22 @@ st.markdown("""
     }
     .metric-title { font-size: 0.95rem; font-weight: bold; opacity: 0.95; }
     .metric-value { font-size: 1.25rem; font-weight: bold; margin-top: 4px; }
-    .card-divider { border-top: 1px solid rgba(255,255,255,0.2); margin: 10px 0; }
+    
+    /* أنماط تلوين الشركات حسب الأداء */
+    .company-card-positive {
+        background-color: rgba(16, 185, 129, 0.08);
+        border-right: 5px solid #10b981;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+    }
+    .company-card-negative {
+        background-color: rgba(239, 68, 68, 0.08);
+        border-right: 5px solid #ef4444;
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -240,7 +255,7 @@ def analyze_full_stock(df, symbol_clean):
         "prev_info": prev_info
     }
 
-st.title("🌟 مطابقة تواريخ الشموع الحالية والقادمة بالدورة السابقة")
+st.title("🌟 منصة الدورات الزمنية والأداء الدوري")
 
 market_choice = st.radio("اختر السوق للتحليل:", ["أمريكي (نازداك / أوبشن)", "سعودي (تاسي)"], horizontal=True)
 pool = NASDAQ_TOP20_OPTIONS if "أمريكي" in market_choice else TASI_ALL_STOCKS
@@ -266,44 +281,68 @@ if data_list:
     wp = worst_m["prev_info"]
 
     col_star, col_worst = st.columns(2)
+    
+    # 🌟 عرض نجم السوق (الأداء فقط + تواريخ مخفية)
     with col_star:
         st.markdown(f"""
         <div class="star-card-top">
             <div class="metric-title">🌟 نجم السوق (الأعلى أداءً)</div>
             <div class="metric-value">{star_m['name']} ({star_m['sym']})</div>
-            <div style="margin-top:6px;">• الأداء الشهري: <b>+{star_m['m_perf']}%</b> | الأسبوعي: <b>+{star_m['w_perf']}%</b></div>
-            <div class="card-divider"></div>
-            <div style="font-size:0.88rem; line-height:1.6;">
-                📅 <b>التاريخ المطابق في الدورة السابقة:</b><br>
-                • <b>الأسبوع الحالي ({sp['curr_week_date']}):</b> يطابق <u>{sp['curr_week_prev_date']}</u> ({sp['curr_week_behavior']})<br>
-                • <b>الشهر الحالي ({sp['curr_month_date']}):</b> يطابق <u>{sp['curr_month_prev_date']}</u> ({sp['curr_month_behavior']})
+            <div style="margin-top:8px; font-size: 1.05rem;">
+                • الأداء الشهري: <b>+{star_m['m_perf']}%</b><br>
+                • الأداء الأسبوعي: <b>+{star_m['w_perf']}%</b>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
+        with st.expander("📅 عرض التواريخ المطابقة في الدورة السابقة"):
+            st.markdown(f"""
+            • **الأسبوع الحالي ({sp['curr_week_date']}):** يطابق `{sp['curr_week_prev_date']}` ({sp['curr_week_behavior']})  
+            • **الشهر الحالي ({sp['curr_month_date']}):** يطابق `{sp['curr_month_prev_date']}` ({sp['curr_month_behavior']})
+            """)
+
+    # ⚠️ عرض الأقل أداءً (الأداء فقط + تواريخ مخفية)
     with col_worst:
         st.markdown(f"""
         <div class="worst-card-top">
             <div class="metric-title">⚠️ الأقل أداءً في السوق</div>
             <div class="metric-value">{worst_m['name']} ({worst_m['sym']})</div>
-            <div style="margin-top:6px;">• الأداء الشهري: <b>{worst_m['m_perf']}%</b> | الأسبوعي: <b>{worst_m['w_perf']}%</b></div>
-            <div class="card-divider"></div>
-            <div style="font-size:0.88rem; line-height:1.6;">
-                📅 <b>التاريخ المطابق في الدورة السابقة:</b><br>
-                • <b>الأسبوع الحالي ({wp['curr_week_date']}):</b> يطابق <u>{wp['curr_week_prev_date']}</u> ({wp['curr_week_behavior']})<br>
-                • <b>الشهر الحالي ({wp['curr_month_date']}):</b> يطابق <u>{wp['curr_month_prev_date']}</u> ({wp['curr_month_behavior']})
+            <div style="margin-top:8px; font-size: 1.05rem;">
+                • الأداء الشهري: <b>{worst_m['m_perf']}%</b><br>
+                • الأداء الأسبوعي: <b>{worst_m['w_perf']}%</b>
             </div>
         </div>
         """, unsafe_allow_html=True)
+        
+        with st.expander("📅 عرض التواريخ المطابقة في الدورة السابقة"):
+            st.markdown(f"""
+            • **الأسبوع الحالي ({wp['curr_week_date']}):** يطابق `{wp['curr_week_prev_date']}` ({wp['curr_week_behavior']})  
+            • **الشهر الحالي ({wp['curr_month_date']}):** يطابق `{wp['curr_month_prev_date']}` ({wp['curr_month_behavior']})
+            """)
 
     st.markdown("---")
-    st.markdown("### 📊 ترتيب الشركات مع التواريخ المقابلة باليوم والشهر والسنة")
+    st.markdown("### 📊 ترتيب الشركات مع التلوين حسب الأداء")
 
+    # عرض الشركات وتلوينها بناءً على الأداء (إيجابي / سلبي)
     for rank, item in enumerate(sorted_m, 1):
         p = item["prev_info"]
-        header_text = f"#{rank} | {item['name']} ({item['sym']})  —  الأداء: {item['m_perf']}%  |  {item['phase_type']}"
+        is_positive = item['m_perf'] >= 0
+        card_style = "company-card-positive" if is_positive else "company-card-negative"
+        perf_symbol = "🟢" if is_positive else "🔴"
+        perf_sign = "+" if is_positive else ""
         
-        with st.expander(header_text):
+        # كارت الشركة الملون
+        st.markdown(f"""
+        <div class="{card_style}">
+            <b>#{rank} | {item['name']} ({item['sym']})</b> — 
+            الأداء الشهري: <b>{perf_sign}{item['m_perf']}% {perf_symbol}</b> | 
+            الأسبوعي: <b>{perf_sign}{item['w_perf']}%</b> | 
+            المسار: <b>{item['phase_type']}</b>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # تفاصيل الشركة قابلة للتوسع
+        with st.expander(f"🔍 التفاصيل والتواريخ المطابقة لـ {item['name']}"):
             st.markdown(f"""
             **🔄 تفاصيل الدورة الحالية ({item['long_cycle']} شهراً):**
             - **السعر الحالي:** {item['current_price']} | **المستهدف النسبي:** {item['proportional_target']}
@@ -314,14 +353,14 @@ if data_list:
             st.markdown("---")
             st.markdown("#### 🗓️ مطابقة التواريخ وسلوك الشموع في الدورة السابقة:")
             
-            st.markdown(f"- **الأسبوع الحالي ({p['curr_week_date']}):** يصادف تاريخ **{p['curr_week_prev_date']}** في الدورة السابقة 👈 ({p['curr_week_behavior']})")
-            st.markdown(f"- **الأسبوع القادم ({p['next_week_date']}):** سيصادف تاريخ **{p['next_week_prev_date']}** في الدورة السابقة 👈 ({p['next_week_behavior']})")
+            st.markdown(f"- **الأسبوع الحالي ({p['curr_week_date']}):** يصادف تاريخ **{p['curr_week_prev_date']}** 👈 ({p['curr_week_behavior']})")
+            st.markdown(f"- **الأسبوع القادم ({p['next_week_date']}):** سيصادف تاريخ **{p['next_week_prev_date']}** 👈 ({p['next_week_behavior']})")
             
-            st.markdown(f"- **الشهر الحالي ({p['curr_month_date']}):** يصادف شهر **{p['curr_month_prev_date']}** في الدورة السابقة 👈 ({p['curr_month_behavior']})")
-            st.markdown(f"- **الشهر القادم ({p['next_month_date']}):** سيصادف شهر **{p['next_month_prev_date']}** في الدورة السابقة 👈 ({p['next_month_behavior']})")
+            st.markdown(f"- **الشهر الحالي ({p['curr_month_date']}):** يصادف شهر **{p['curr_month_prev_date']}** 👈 ({p['curr_month_behavior']})")
+            st.markdown(f"- **الشهر القادم ({p['next_month_date']}):** سيصادف شهر **{p['next_month_prev_date']}** 👈 ({p['next_month_behavior']})")
 
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=item['df_m'].index, y=item['df_m'].values, mode='lines', name='السعر الشهري', line=dict(color='#0284c7', width=2)))
             fig.add_hline(y=item['proportional_target'], line_dash="dash", line_color="#10b981", annotation_text=f"المستهدف: {item['proportional_target']}")
-            fig.update_layout(template="plotly_white", height=280, margin=dict(l=10, r=10, t=20, b=10))
+            fig.update_layout(template="plotly_white", height=260, margin=dict(l=10, r=10, t=20, b=10))
             st.plotly_chart(fig, use_container_width=True)

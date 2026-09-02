@@ -50,6 +50,21 @@ NASDAQ_TOP20_OPTIONS = {
 }
 
 CONFIRMED_CYCLES = {
+    "TSLA": {
+        "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
+        "start": "2024-04-01", "end": "2028-05-01", "peak": "2025-11-01",
+        "prev_start": "2020-03-01", "prev_end": "2024-03-31", "prev_peak_date": "2021-11-15",
+        "monthly_close": "قمة ذيل علوي 🔴", "weekly_close": "تذبذب عالي مائل للهبوط 🔴",
+        "m_perf": -6.1, "w_perf": -1.8,
+        "curr_month_date": "أغسطس 2026", "curr_month_prev_date": "يوليو 2022",
+        "next_month_date": "سبتمبر 2026", "next_month_prev_date": "أغسطس 2022",
+        "curr_week_date": "01 أغسطس 2026", "curr_week_prev_date": "05 يوليو 2022",
+        "next_week_date": "08 أغسطس 2026", "next_week_prev_date": "12 يوليو 2022",
+        "curr_month_behavior": "موجة تصحيح وجني أرباح 🔴",
+        "next_month_behavior": "شمعة حيرة وتوازن مؤقت 🟡",
+        "curr_week_behavior": "ضغط بيعي أسبوعي 🔴",
+        "next_week_behavior": "اختبار قاع الأسبوع السابق 🔴"
+    },
     "INTC": {
         "cycle_months": 29, "up_m": 14, "fib_retrace": 0.618,
         "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
@@ -79,21 +94,6 @@ CONFIRMED_CYCLES = {
         "next_month_behavior": "استمرار الصعود نحو المستهدف 🟢",
         "curr_week_behavior": "شمعة أسبوعية خضراء ممتدة 🟢",
         "next_week_behavior": "تذبذب عند مستهدفات فيبوناتشي 🟡"
-    },
-    "TSLA": {
-        "cycle_months": 48, "up_m": 20, "fib_retrace": 0.618,
-        "start": "2024-04-01", "end": "2028-04-01", "peak": "2025-11-01",
-        "prev_start": "2020-03-01", "prev_end": "2024-02-29", "prev_peak_date": "2021-11-15",
-        "monthly_close": "قمة ذيل علوي 🔴", "weekly_close": "تذبذب عالي مائل للهبوط 🔴",
-        "m_perf": -6.1, "w_perf": -1.8,
-        "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2022",
-        "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2022",
-        "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "06 سبتمبر 2022",
-        "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "13 سبتمبر 2022",
-        "curr_month_behavior": "موجة تصحيح وجني أرباح 🔴",
-        "next_month_behavior": "شمعة حيرة وتوازن مؤقت 🟡",
-        "curr_week_behavior": "ضغط بيعي أسبوعي 🔴",
-        "next_week_behavior": "اختبار قاع الأسبوع السابق 🔴"
     },
     "META": {
         "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
@@ -205,10 +205,10 @@ def analyze_full_stock(df, symbol_clean):
             "p_peak": (cycle_start + pd.DateOffset(months=up_m)).strftime("%Y-%m-%d"),
             "m_close": "موجة هابطة 🔴",
             "w_close": "تذبذب 🟡",
-            "curr_month_date": "سبتمبر 2026", "curr_month_prev_date": "سبتمبر 2023",
-            "next_month_date": "أكتوبر 2026", "next_month_prev_date": "أكتوبر 2023",
-            "curr_week_date": "01 سبتمبر 2026", "curr_week_prev_date": "05 سبتمبر 2023",
-            "next_week_date": "08 سبتمبر 2026", "next_week_prev_date": "12 سبتمبر 2023",
+            "curr_month_date": "أغسطس 2026", "curr_month_prev_date": "يوليو 2022",
+            "next_month_date": "سبتمبر 2026", "next_month_prev_date": "أغسطس 2022",
+            "curr_week_date": "01 أغسطس 2026", "curr_week_prev_date": "05 يوليو 2022",
+            "next_week_date": "08 أغسطس 2026", "next_week_prev_date": "12 يوليو 2022",
             "curr_month_behavior": "مسار تجميعي متماثل 🟡",
             "next_month_behavior": "اختبار قمة الدورة السابقة 🟢",
             "curr_week_behavior": "تذبذب عرضي 🟡",

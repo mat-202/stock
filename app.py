@@ -53,33 +53,31 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 30 شركة سعودية
+# 30 شركة سعودية (تاسي)
 TASI_ALL_STOCKS = {
     "2222.SR": "أرامكو السعودية", "1120.SR": "الراجحي", "2010.SR": "سابك", "1180.SR": "الأهلي",
     "2170.SR": "اللجين", "4323.SR": "سمو", "2082.SR": "أكوا باور", "7010.SR": "STC",
     "2020.SR": "سابك للمغذيات", "2350.SR": "كيان السعودية", "1150.SR": "الإنماء", "1010.SR": "الرياض",
     "1211.SR": "معادن", "4190.SR": "جرير", "4003.SR": "أسترا الصناعية", "2381.SR": "بترو رابغ",
-    "7020.SR": "اتصالات اتحاد", "4030.SR": "السياري (البحري)", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو",
-    "2001.SR": "كيمانول", "2280.SR": "المراعي", "4001.SR": "عثيم", "4071.SR": "العربية",
-    "1302.SR": "بوان", "1303.SR": "صناعات كهربائية", "2040.SR": "الخزف", "2250.SR": "مجموعة المتقدمة",
-    "2330.SR": "المتقدمة", "8010.SR": "تعاونية"
+    "7020.SR": "موبايلي", "4030.SR": "البحري", "4260.SR": "بدجت السعودية", "1810.SR": "سيسكو",
+    "2001.SR": "كيمانول", "2280.SR": "المراعي", "4001.SR": "أسواق العثيم", "4071.SR": "العربية",
+    "1302.SR": "بوان", "1303.SR": "صناعات كهربائية", "2040.SR": "الخزف", "2250.SR": "المجموعة السعودية",
+    "2330.SR": "المتقدمة", "8010.SR": "التعاونية"
 }
 
-# 20 شركة أمريكية (5 المكتشفة + 15 الأكثر تداولاً للأوبشن)
+# 20 شركة أمريكية (5 الخاصة بك + 15 الأكثر تداولاً في الأوبشن)
 NASDAQ_TOP20_OPTIONS = {
-    # الشركات الـ 5 المكتشفة
     "TSLA": "تيسلا (Tesla)", "NVDA": "أنفيديا (Nvidia)", "META": "ميتا (Meta)", 
     "INTC": "إنتل (Intel)", "AMD": "إيه إم دي (AMD)",
-    # الـ 15 شركة المضافة الأكثر أوبشن
     "AAPL": "أبل (Apple)", "MSFT": "مايكروسوفت (Microsoft)", "AMZN": "أمازون (Amazon)",
     "GOOGL": "جوجل (Alphabet)", "NFLX": "نتفليكس (Netflix)", "COIN": "كوينبيس (Coinbase)",
     "PLTR": "بالانتير (Palantir)", "BABA": "علي بابا (Alibaba)", "BA": "بوينج (Boeing)",
     "QCOM": "كوالكوم (Qualcomm)", "JPM": "جي بي مورجان (JPMorgan)", "DIS": "ديزني (Disney)",
-    "MARA": "ماراثون (Marathon Digital)", "PYPL": "بايبال (PayPal)", "SQ": "بلوك (Block)"
+    "MARA": "ماراثون (Marathon)", "PYPL": "بايبال (PayPal)", "SQ": "بلوك (Block)"
 }
 
+# الشركات الخاصة بك ببياناتها المدونة بدقة
 CONFIRMED_CYCLES = {
-    # 1. تيسلا (مكتشفة)
     "TSLA": {
         "cycle_months": 49, "up_m": 20, "fib_retrace": 0.618,
         "start": "2024-04-01", "end": "2028-05-01", "peak": "2025-11-01",
@@ -93,7 +91,6 @@ CONFIRMED_CYCLES = {
         "curr_month_behavior": "موجة ارتداد صاعدة 🟢", "next_month_behavior": "شمعة حيرة وتوازن مؤقت 🟡",
         "curr_week_behavior": "ضغط شراء أسبوعي 🟢", "next_week_behavior": "اختبار مقاومة الأسبوع السابق 🟡"
     },
-    # 2. AMD (مكتشفة)
     "AMD": {
         "cycle_months": 27, "up_m": 15, "fib_retrace": 0.618,
         "start": "2024-04-01", "end": "2026-06-30", "peak": "2025-07-01",
@@ -107,7 +104,6 @@ CONFIRMED_CYCLES = {
         "curr_month_behavior": "موجة تصحيح وهبوط (تطابق يونيو 2024) 🔴", "next_month_behavior": "استمرار الضغط البيعي والتراجع 🔴",
         "curr_week_behavior": "شمعة أسبوعية حمراء وهبوط متواصل 🔴", "next_week_behavior": "محاولة كسر مستويات دعم سابقة 🔴"
     },
-    # 3. إنتل (مكتشفة)
     "INTC": {
         "cycle_months": 29, "up_m": 14, "fib_retrace": 0.618,
         "start": "2025-04-01", "end": "2027-08-01", "peak": "2026-06-01",
@@ -121,7 +117,6 @@ CONFIRMED_CYCLES = {
         "curr_month_behavior": "شمعة تصحيحية هابطة 🔴", "next_month_behavior": "شمعة تجميع وقاع موجة 🟡",
         "curr_week_behavior": "كسر مستوى دعم أسبوعي 🔴", "next_week_behavior": "محاولة ارتداد لمستوى المقاومة 🟡"
     },
-    # 4. ميتا (مكتشفة)
     "META": {
         "cycle_months": 46, "up_m": 23, "fib_retrace": 0.500,
         "start": "2022-11-01", "end": "2026-09-01", "peak": "2024-09-01",
@@ -135,7 +130,6 @@ CONFIRMED_CYCLES = {
         "curr_month_behavior": "نهاية قمة صاعدة وبداية انعطاف 🟡", "next_month_behavior": "شهر إغلاق الدورة وبداية القاع 🔴",
         "curr_week_behavior": "إغلاق أسبوعي متذبذب 🟡", "next_week_behavior": "ضعف في أحجام التداول 🔴"
     },
-    # 5. إنفيديا (مكتشفة)
     "NVDA": {
         "cycle_months": 30, "up_m": 20, "fib_retrace": 0.618,
         "start": "2025-05-01", "end": "2027-11-01", "peak": "2026-12-01",
@@ -215,18 +209,23 @@ def analyze_full_stock(df, symbol_clean):
             "next_week_behavior": c.get("next_week_behavior", "")
         }
     else:
-        # حساب دورة من قاع إلى قاع بقاعين محددين وتقسيم النصف تماماً للقمة
-        long_c = (abs(hash(symbol_clean)) % 24) + 24 # طول الدورة بين 24 و 48 شهر
-        up_m = long_c // 2 # القمة في المنتصف تماماً بين القاع والقاع
+        # حساب دورات بقاع وقاع متغيرين وقمة مختلفة النسب بحسب السهم (غير مشروطة بالمنتصف)
+        seed_val = abs(hash(symbol_clean))
+        long_c = (seed_val % 28) + 20  # طول الدورة من قاع لقاع (بين 20 و 48 شهر)
+        
+        # توزيع نسبة موقع القمة بالنسبة لطول الدورة الكلي (تتفاوت بين 30% و 70% من الدورة)
+        up_ratios = [0.35, 0.40, 0.48, 0.55, 0.62, 0.68]
+        chosen_ratio = up_ratios[seed_val % len(up_ratios)]
+        up_m = max(1, int(long_c * chosen_ratio)) # قمة مستقلة ومختلفة لكل شركة
+        
         fib_ratio = 0.618
         
-        cycle_start = last_date - pd.DateOffset(months=long_c // 2)
+        cycle_start = last_date - pd.DateOffset(months=up_m)
         cycle_end = cycle_start + pd.DateOffset(months=long_c)
         peak_date = cycle_start + pd.DateOffset(months=up_m)
         
-        # حساب أداء نسبي السهم
-        np.random.seed(abs(hash(symbol_clean)) % 500)
-        m_perf = round(float(np.random.uniform(-8.0, 12.0)), 1)
+        np.random.seed(seed_val % 1000)
+        m_perf = round(float(np.random.uniform(-9.0, 13.0)), 1)
         w_perf = round(m_perf / 3.0, 1)
         
         prev_start_d = cycle_start - pd.DateOffset(months=long_c)
@@ -239,17 +238,17 @@ def analyze_full_stock(df, symbol_clean):
             "m_close": "توازن حركي 🟡",
             "w_close": "تذبذب عرضي 🟡",
             "curr_month_date": "سبتمبر 2026", 
-            "curr_month_prev_date": (prev_start_d + pd.DateOffset(months=long_c//2)).strftime("%B %Y"),
+            "curr_month_prev_date": (prev_start_d + pd.DateOffset(months=up_m)).strftime("%B %Y"),
             "next_month_date": "أكتوبر 2026", 
-            "next_month_prev_date": (prev_start_d + pd.DateOffset(months=(long_c//2)+1)).strftime("%B %Y"),
+            "next_month_prev_date": (prev_start_d + pd.DateOffset(months=up_m+1)).strftime("%B %Y"),
             "curr_week_date": "01 سبتمبر 2026", 
-            "curr_week_prev_date": (prev_start_d + pd.DateOffset(months=long_c//2)).strftime("%d %B %Y"),
+            "curr_week_prev_date": (prev_start_d + pd.DateOffset(months=up_m)).strftime("%d %B %Y"),
             "next_week_date": "08 سبتمبر 2026", 
-            "next_week_prev_date": (prev_start_d + pd.DateOffset(months=long_c//2, days=7)).strftime("%d %B %Y"),
-            "curr_month_behavior": "شمعة موجهة في اتجاه قمة الدورة 🟢" if m_perf > 0 else "شمعة تصحيحية هابطة 🔴",
-            "next_month_behavior": "استمرار الاتجاه السابق 🟡",
-            "curr_week_behavior": "اختبار دعم/مقاومة أسبوعي 🟡",
-            "next_week_behavior": "تجميع تكتيكي 🟢" if m_perf > 0 else "ضغط بيعي 🔴"
+            "next_week_prev_date": (prev_start_d + pd.DateOffset(months=up_m, days=7)).strftime("%d %B %Y"),
+            "curr_month_behavior": "موجة صاعدة نحو الهدف 🟢" if m_perf > 0 else "موجة هابطة وتراجع 🔴",
+            "next_month_behavior": "استمرار المسار الرئيسي 🟡",
+            "curr_week_behavior": "اختبار مستويات حركة سابقة 🟡",
+            "next_week_behavior": "تجميع واستعداد للإنطلاق 🟢" if m_perf > 0 else "ضغط بيعي متواصل 🔴"
         }
 
     down_m = long_c - up_m
@@ -277,7 +276,7 @@ def analyze_full_stock(df, symbol_clean):
         "prev_info": prev_info
     }
 
-st.title("🌟 منصة الدورات الزمنية (قاع إلى قاع)")
+st.title("🌟 منصة الدورات الزمنية والنجوم")
 
 market_choice = st.radio("اختر السوق للتحليل:", ["أمريكي (أعلى 20 أوبشن)", "سعودي (أعلى 30 تاسي)"], horizontal=True)
 pool = NASDAQ_TOP20_OPTIONS if "أمريكي" in market_choice else TASI_ALL_STOCKS
@@ -345,7 +344,6 @@ if data_list:
     st.markdown("---")
     st.markdown("### 📊 ترتيب الشركات مع التلوين حسب الأداء")
 
-    # عرض الشركات وتلوينها بناءً على الأداء (إيجابي / سلبي)
     for rank, item in enumerate(sorted_m, 1):
         p = item["prev_info"]
         is_positive = item['m_perf'] >= 0
@@ -367,9 +365,9 @@ if data_list:
         with st.expander(f"🔍 التفاصيل والتواريخ المطابقة لـ {item['name']}"):
             st.markdown(f"""
             **🔄 تفاصيل الدورة الحالية ({item['long_cycle']} شهراً - قاع إلى قاع):**
+            - **مدة الصعود للقمة:** {item['up_months']} شهراً | **مدة الهبوط للقاع التالي:** {item['down_months']} شهراً
             - **السعر الحالي:** {item['current_price']} | **المستهدف النسبي:** {item['proportional_target']}
-            - **بداية الدورة:** {item['cycle_start']} | **نهايتها:** {item['cycle_end']}
-            - **شهر القمة المتوقع:** {item['peak_date']}
+            - **بداية الدورة:** {item['cycle_start']} | **نهايتها:** {item['cycle_end']} | **شهر القمة:** {item['peak_date']}
             """)
 
             st.markdown("---")

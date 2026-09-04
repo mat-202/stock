@@ -11,12 +11,28 @@ import streamlit as st
 
 from config import MARKETS
 from analytics import cycle_snapshot, matching_report, build_leaderboard
-from cycle_engine import month_str
+from cycle_engine import month_str, Cycle
 
 st.set_page_config(page_title="لوحة تحليل الدورات الزمنية", page_icon="🔄", layout="wide")
 st.markdown('<div dir="rtl">', unsafe_allow_html=True)
 
 TODAY = date.today()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_auto_cycles(ticker: str, market: str):
+    """يكتشف الدورات تلقائيًا من التاريخ الحقيقي (مخبّأ لمدة ساعة)."""
+    from auto_cycle_detector import detect_cycles
+    cycles = detect_cycles(ticker, market)
+    return [(c.start, c.end, c.peak) for c in cycles]
+
+
+def ensure_cycles(tc):
+    """إذا ما فيه دورات مُدخلة يدويًا، يكتشفها تلقائيًا من السعر التاريخي."""
+    if not tc.cycles:
+        raw = _cached_auto_cycles(tc.ticker, tc.market)
+        tc.cycles = [Cycle(s, e, p) for s, e, p in raw]
+    return tc
 
 # -----------------------------------------------------------
 # اختيار السوق
@@ -30,10 +46,20 @@ market_key = st.radio(
     horizontal=True,
 )
 stocks = MARKETS[market_key]["stocks"]
+
+with st.spinner("جاري تجهيز بيانات الدورات (يدوي + اكتشاف تلقائي)..."):
+    for _tc in stocks.values():
+        ensure_cycles(_tc)
+
 stocks_with_data = {k: v for k, v in stocks.items() if v.cycles}
+missing = [k for k, v in stocks.items() if not v.cycles]
+
+if missing:
+    st.caption(f"⚠️ تعذّر اكتشاف دورات لهذه الأسهم (بيانات تاريخية غير كافية): "
+               f"{', '.join(missing)}")
 
 if not stocks_with_data:
-    st.warning("لا توجد أسهم فيها بيانات دورات مسجّلة لهذا السوق بعد. "
+    st.warning("لا توجد أسهم فيها بيانات دورات لهذا السوق بعد. "
                "أضفها من ملف config.py")
     st.stop()
 
@@ -111,6 +137,10 @@ cons = tc.consistency()
 st.caption(
     f"متوسط طول الدورة: {avg_len:.1f} شهر"
     + (f" | ثبات موقع القمة (انحراف معياري): {cons:.3f}" if cons is not None else "")
+)
+st.caption(
+    "ℹ️ إذا لم تُدخل دورات هذا السهم يدويًا في config.py، فهي مكتشفة "
+    "تلقائيًا (اجتهاد إحصائي تقريبي) — راجعها بصريًا قبل الاعتماد عليها."
 )
 
 st.subheader("📅 مطابقة التواريخ وسلوك الشموع في الدورة السابقة")

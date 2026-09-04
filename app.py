@@ -1,201 +1,145 @@
 """
-===========================================================
-أداة تحليل وتوقع الدورات الزمنية لأسهم ناسداك
-Stock Cycle Analyzer & Predictor
-===========================================================
-
-الفكرة:
---------
-كل سهم يمر بدورات زمنية متكررة (تقريبًا) بنفس عدد الأشهر،
-والقمة (Top) تظهر عادة في نفس "رقم الشهر" تقريبًا داخل كل دورة.
-
-مثال (تسلا TSLA):
-- الدورة 1: بدأت مارس 2020 → انتهت مارس 2024   (طول الدورة = 49 شهر)
-- القمة كانت في الشهر رقم 20 من الدورة (أكتوبر 2021)
-- الدورة 2 (المتوقعة): تبدأ أبريل 2024 → تنتهي أبريل 2028
-- القمة المتوقعة في نفس رقم الشهر (20) = نوفمبر 2025
-
-هذا الكود يقوم بهذا الحساب تلقائيًا لأي عدد من الأسهم والدورات،
-ويحسب متوسط طول الدورة ومتوسط موقع القمة، ثم يتوقع الدورة القادمة.
-
-⚠️ ملاحظة مهمة:
-هذا أداة تحليل إحصائي/بصري لأنماط تاريخية فقط، وليست توصية
-استثمارية. الأسواق المالية لا تلتزم بدورات ثابتة 100%، والنتائج
-احتمالية وليست مؤكدة. استخدمها كأداة بحث إضافية فقط.
+app.py
+======
+لوحة التحكم الرئيسية (Streamlit). شغّلها محليًا بـ:
+    streamlit run app.py
+أو ارفعها على Streamlit Community Cloud (مجاني) وتربطها بمستودع GitHub.
 """
 
-from __future__ import annotations
-from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional, List
-import calendar
-import statistics
+import streamlit as st
 
+from config import MARKETS
+from analytics import cycle_snapshot, matching_report, build_leaderboard
+from cycle_engine import month_str
 
-# -----------------------------------------------------------
-# دوال مساعدة للتعامل مع التواريخ على مستوى الشهر
-# -----------------------------------------------------------
-def add_months(d: date, months: int) -> date:
-    """يرجع تاريخ جديد بعد إضافة عدد من الأشهر لتاريخ d (باليوم 1)."""
-    total_month_index = d.month - 1 + months
-    year = d.year + total_month_index // 12
-    month = total_month_index % 12 + 1
-    day = min(d.day, calendar.monthrange(year, month)[1])
-    return date(year, month, day)
+st.set_page_config(page_title="لوحة تحليل الدورات الزمنية", page_icon="🔄", layout="wide")
+st.markdown('<div dir="rtl">', unsafe_allow_html=True)
 
-
-def diff_months(d1: date, d2: date) -> int:
-    """عدد الأشهر الكاملة بين تاريخين (d2 - d1)."""
-    return (d2.year - d1.year) * 12 + (d2.month - d1.month)
-
-
-def month_str(d: date) -> str:
-    return d.strftime("%Y-%m")
-
+TODAY = date.today()
 
 # -----------------------------------------------------------
-# تمثيل دورة واحدة
+# اختيار السوق
 # -----------------------------------------------------------
-@dataclass
-class Cycle:
-    start: date
-    end: date
-    peak: Optional[date] = None
+st.title("🔄 لوحة تحليل الدورات الزمنية")
 
-    @property
-    def length_months(self) -> int:
-        # عد شامل: من شهر البداية إلى شهر النهاية (شاملة الطرفين)
-        return diff_months(self.start, self.end) + 1
+market_key = st.radio(
+    "اختر السوق للتحليل:",
+    options=list(MARKETS.keys()),
+    format_func=lambda k: MARKETS[k]["label"],
+    horizontal=True,
+)
+stocks = MARKETS[market_key]["stocks"]
+stocks_with_data = {k: v for k, v in stocks.items() if v.cycles}
 
-    @property
-    def peak_month_number(self) -> Optional[int]:
-        if self.peak is None:
-            return None
-        return diff_months(self.start, self.peak) + 1
-
-    @property
-    def peak_ratio(self) -> Optional[float]:
-        if self.peak is None:
-            return None
-        return self.peak_month_number / self.length_months
-
+if not stocks_with_data:
+    st.warning("لا توجد أسهم فيها بيانات دورات مسجّلة لهذا السوق بعد. "
+               "أضفها من ملف config.py")
+    st.stop()
 
 # -----------------------------------------------------------
-# نموذج تحليل الدورات لسهم واحد
+# 👑 عرش النجوم والأداء
 # -----------------------------------------------------------
-@dataclass
-class TickerCycles:
-    ticker: str
-    cycles: List[Cycle] = field(default_factory=list)
+st.header("👑 عرش النجوم والأداء الدوري")
 
-    def add_cycle(self, start: str, end: str, peak: Optional[str] = None,
-                  fmt: str = "%Y-%m"):
-        """أضف دورة جديدة. صيغة التاريخ الافتراضية: YYYY-MM (مثال: 2020-03)"""
-        s = _parse(start, fmt)
-        e = _parse(end, fmt)
-        p = _parse(peak, fmt) if peak else None
-        self.cycles.append(Cycle(s, e, p))
+with st.spinner("جاري حساب أداء الأسهم..."):
+    leaderboard = build_leaderboard(stocks_with_data)
 
-    # ---------- إحصائيات ----------
-    def avg_length(self) -> float:
-        return statistics.mean(c.length_months for c in self.cycles)
+if not leaderboard:
+    st.info("تعذّر جلب بيانات الأداء حاليًا (تحقق من الاتصال أو رموز الأسهم).")
+else:
+    best, worst = leaderboard[0], leaderboard[-1]
+    col1, col2 = st.columns(2)
 
-    def avg_peak_ratio(self) -> Optional[float]:
-        ratios = [c.peak_ratio for c in self.cycles if c.peak_ratio is not None]
-        return statistics.mean(ratios) if ratios else None
+    with col1:
+        st.success(
+            f"🌟 **نجم السوق (الأعلى أداءً)**\n\n"
+            f"### {best['name']} ({best['ticker']})\n"
+            f"- الأداء الشهري: **{best['monthly_pct']:+.1f}%**\n"
+            f"- الأداء الأسبوعي: **{best['weekly_pct']:+.1f}%**"
+            if best['weekly_pct'] is not None else
+            f"🌟 **نجم السوق**\n\n### {best['name']} ({best['ticker']})\n"
+            f"- الأداء الشهري: **{best['monthly_pct']:+.1f}%**"
+        )
 
-    def consistency(self) -> Optional[float]:
-        """انحراف معياري لموقع القمة (كلما قل = الدورة أكثر ثباتًا)."""
-        ratios = [c.peak_ratio for c in self.cycles if c.peak_ratio is not None]
-        if len(ratios) < 2:
-            return None
-        return statistics.pstdev(ratios)
+    with col2:
+        st.error(
+            f"⚠️ **الأقل أداءً في السوق**\n\n"
+            f"### {worst['name']} ({worst['ticker']})\n"
+            f"- الأداء الشهري: **{worst['monthly_pct']:+.1f}%**\n"
+            f"- الأداء الأسبوعي: **{worst['weekly_pct']:+.1f}%**"
+            if worst['weekly_pct'] is not None else
+            f"⚠️ **الأقل أداءً**\n\n### {worst['name']} ({worst['ticker']})\n"
+            f"- الأداء الشهري: **{worst['monthly_pct']:+.1f}%**"
+        )
 
-    # ---------- التوقع ----------
-    def predict_next_cycles(self, n: int = 1) -> List[Cycle]:
-        """يتوقع n دورة قادمة اعتمادًا على متوسط الطول وموقع القمة."""
-        if not self.cycles:
-            return []
-        avg_len = round(self.avg_length())
-        avg_ratio = self.avg_peak_ratio()
+    with st.expander("عرض ترتيب كل الأسهم"):
+        st.table([
+            {"السهم": r["name"], "الرمز": r["ticker"],
+             "أسبوعي %": r["weekly_pct"], "شهري %": r["monthly_pct"]}
+            for r in leaderboard
+        ])
 
-        predictions = []
-        last_end = self.cycles[-1].end
-        for _ in range(n):
-            next_start = add_months(last_end, 1)
-            next_end = add_months(next_start, avg_len - 1)
-            next_peak = None
-            if avg_ratio is not None:
-                peak_offset = round(avg_ratio * avg_len) - 1
-                next_peak = add_months(next_start, peak_offset)
-            predictions.append(Cycle(next_start, next_end, next_peak))
-            last_end = next_end
-        return predictions
-
-    # ---------- تقرير نصي ----------
-    def report(self, predict: int = 1):
-        print(f"\n{'='*55}")
-        print(f"السهم: {self.ticker}")
-        print(f"{'='*55}")
-
-        for i, c in enumerate(self.cycles, 1):
-            peak_txt = (f"  | القمة: {month_str(c.peak)} (الشهر رقم {c.peak_month_number})"
-                        if c.peak else "")
-            print(f"الدورة {i}: {month_str(c.start)} → {month_str(c.end)} "
-                  f"(الطول: {c.length_months} شهر){peak_txt}")
-
-        avg_len = self.avg_length()
-        avg_ratio = self.avg_peak_ratio()
-        cons = self.consistency()
-
-        print(f"\n-- متوسط طول الدورة: {avg_len:.1f} شهر")
-        if avg_ratio is not None:
-            print(f"-- متوسط موقع القمة: الشهر رقم {avg_ratio * avg_len:.1f} "
-                  f"من الدورة (نسبة {avg_ratio*100:.1f}%)")
-        if cons is not None:
-            print(f"-- درجة ثبات القمة (انحراف معياري للنسبة): {cons:.3f} "
-                  f"{'(ثبات جيد)' if cons < 0.05 else '(تفاوت ملحوظ)'}")
-
-        preds = self.predict_next_cycles(predict)
-        for i, p in enumerate(preds, 1):
-            peak_txt = f" | القمة المتوقعة: {month_str(p.peak)}" if p.peak else ""
-            print(f"\n>>> توقع الدورة القادمة #{i}: "
-                  f"{month_str(p.start)} → {month_str(p.end)}{peak_txt}")
-
-
-def _parse(s: str, fmt: str) -> date:
-    from datetime import datetime
-    return datetime.strptime(s, fmt).date()
-
+st.divider()
 
 # -----------------------------------------------------------
-# مثال تطبيقي: تسلا (بيانات مؤكدة من رسالتك)
+# تفاصيل سهم محدد: السعر، المستهدف، الدورة، ومطابقة التواريخ
 # -----------------------------------------------------------
-if __name__ == "__main__":
-    tsla = TickerCycles("TSLA")
-    tsla.add_cycle(start="2020-03", end="2024-03", peak="2021-10")  # الشهر رقم 20
-    tsla.report(predict=2)
+st.header("📊 تفاصيل الدورة لسهم محدد")
 
-    # -----------------------------------------------------------
-    # قالب فارغ لباقي الأسهم — عدّل التواريخ حسب بياناتك الفعلية
-    # صيغة التاريخ: "YYYY-MM"  (مثال: "2023-01")
-    # -----------------------------------------------------------
+selected_key = st.selectbox(
+    "اختر السهم:",
+    options=list(stocks_with_data.keys()),
+    format_func=lambda k: f"{stocks_with_data[k].name} ({stocks_with_data[k].ticker})",
+)
+tc = stocks_with_data[selected_key]
 
-    amd = TickerCycles("AMD")
-    # مثال بالشكل فقط — استبدل بالتواريخ الحقيقية من دفترك
-    # amd.add_cycle(start="2023-01", end="2025-02")   # الدورة السابقة
-    # amd.add_cycle(start="2025-04", end="2027-06")   # الدورة الحالية
-    # amd.report(predict=1)
+with st.spinner("جاري حساب بيانات الدورة..."):
+    snap = cycle_snapshot(tc, TODAY)
 
-    meta = TickerCycles("META")
-    # meta.add_cycle(start="2021-12", end="2023-01")
-    # meta.add_cycle(start="2022-11", end="2024-09")
-    # meta.report(predict=1)
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("السعر الحالي", f"{snap.current_price:.2f}" if snap.current_price else "—")
+c2.metric("المستهدف النسبي", f"{snap.target_price:.2f}" if snap.target_price else "—")
+c3.metric("بداية الدورة", month_str(snap.cycle_start))
+c4.metric("نهاية الدورة", month_str(snap.cycle_end))
 
-    fourth = TickerCycles("STOCK4")
-    # fourth.add_cycle(start="2021-12", end="2024-02")
-    # fourth.add_cycle(start="2022-05", end="2024-07")
-    # fourth.report(predict=1)
+if snap.expected_peak:
+    st.info(f"📈 شهر القمة المتوقع لهذه الدورة: **{month_str(snap.expected_peak)}**")
 
-    print("\n\nعدّل بيانات AMD وMETA والسهم الرابع في الكود ثم شغّله من جديد "
-          "لعرض توقعاتها.")
+avg_len = tc.avg_length()
+cons = tc.consistency()
+st.caption(
+    f"متوسط طول الدورة: {avg_len:.1f} شهر"
+    + (f" | ثبات موقع القمة (انحراف معياري): {cons:.3f}" if cons is not None else "")
+)
+
+st.subheader("📅 مطابقة التواريخ وسلوك الشموع في الدورة السابقة")
+
+with st.spinner("جاري مطابقة التواريخ..."):
+    report = matching_report(tc, TODAY)
+
+if report is None:
+    st.info("لا توجد دورة سابقة كافية للمطابقة (تحتاج دورتين مسجّلتين على الأقل).")
+else:
+    labels = {
+        "this_week": "الأسبوع الحالي",
+        "next_week": "الأسبوع القادم",
+        "this_month": "الشهر الحالي",
+        "next_month": "الشهر القادم",
+    }
+    for key, label in labels.items():
+        candle = report.get(key)
+        if candle:
+            st.write(
+                f"**{label}** ↔ يطابق تاريخ **{candle['date'].strftime('%Y-%m-%d')}** "
+                f"من الدورة السابقة → {candle['label']}"
+            )
+        else:
+            st.write(f"**{label}**: تعذّر جلب بيانات الشمعة المطابقة.")
+
+st.divider()
+st.caption(
+    "⚠️ هذه أداة تحليل إحصائي لأنماط تاريخية فقط وليست توصية استثمارية. "
+    "الأسواق لا تلتزم بدورات ثابتة 100%، والنتائج احتمالية."
+)
+st.markdown('</div>', unsafe_allow_html=True)
